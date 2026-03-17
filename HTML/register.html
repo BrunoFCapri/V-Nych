@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro</title>
+    <!-- Referencia al CSS de Bootstrap -->
+    <link rel="stylesheet" href="../css/bootstrap.min.css">
+    <style>
+        body, html {
+            height: 100%;
+        }
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #0c0c0c;
+            color: #fff;
+            padding-top: 40px;
+            padding-bottom: 40px;
+            font-family: 'Courier New', Courier, monospace; /* Fuente más "cyberpunk" */
+        }
+        .form-signin {
+            width: 100%;
+            max-width: 330px;
+            padding: 15px;
+            margin: auto;
+            background: #1a1a1a;
+            border-radius: 10px;
+            box-shadow: 0 0 20px #0ff; /* Resplandor neón cyan */
+            border: 1px solid #0ff;
+        }
+        .form-signin h1 {
+            color: #f0f; /* Magenta neón */
+            text-shadow: 0 0 5px #f0f, 0 0 10px #f0f;
+        }
+        .form-signin .checkbox {
+            font-weight: 400;
+            color: #0ff;
+        }
+        .form-floating {
+            color: #000;
+            margin-bottom: 5px; /* Separación entre inputs */
+        }
+        .form-signin .form-floating:focus-within {
+            z-index: 2;
+        }
+        /* Ajuste general para todos los inputs */
+        .form-signin input {
+            background-color: #222;
+            color: #0ff;
+            border-color: #0ff;
+            border-radius: 0; /* Bordes cuadrados estilo retro */
+        }
+        /* Bordes redondeados para el primero y último (opcional, o dejar todos cuadrados) */
+        .form-signin input:first-child {
+            border-top-left-radius: 5px;
+            border-top-right-radius: 5px;
+        }
+        .form-signin input:last-child {
+            border-bottom-right-radius: 5px;
+            border-bottom-left-radius: 5px;
+        }
+
+        .form-signin input:focus {
+            background-color: #333;
+            color: #fff;
+            border-color: #f0f;
+            box-shadow: 0 0 10px #f0f;
+            outline: none;
+        }
+        .btn-primary {
+            background-color: transparent;
+            border-color: #0ff;
+            color: #0ff;
+            text-shadow: 0 0 5px #0ff;
+            box-shadow: 0 0 5px #0ff;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+        .btn-primary:hover {
+            background-color: #0ff;
+            color: #000;
+            box-shadow: 0 0 20px #0ff, 0 0 40px #0ff;
+            border-color: #0ff;
+        }
+        /* Enlace al login */
+        .login-link {
+            color: #f0f;
+            text-decoration: none;
+            display: block;
+            margin-top: 15px;
+            transition: 0.3s;
+        }
+        .login-link:hover {
+            text-shadow: 0 0 10px #f0f;
+            color: #fff;
+        }
+
+        /* Ajuste para los labels flotantes en fondo oscuro */
+        .form-floating > label {
+            color: #aaa;
+        }
+        .form-floating > .form-control:focus ~ label,
+        .form-floating > .form-control:not(:placeholder-shown) ~ label {
+            color: #0ff;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="text-center">
+    
+    <main class="form-signin">
+        <form>
+            <h1 class="h3 mb-3 fw-normal">Crear Cuenta</h1>
+
+            <div class="form-floating">
+                <input type="text" class="form-control" id="floatingName" placeholder="Juan">
+                <label for="floatingName">Nombre</label>
+            </div>
+            <div class="form-floating">
+                <input type="text" class="form-control" id="floatingSurname" placeholder="Pérez">
+                <label for="floatingSurname">Apellido</label>
+            </div>
+            <div class="form-floating">
+                <input type="email" class="form-control" id="floatingInput" placeholder="nombre@ejemplo.com">
+                <label for="floatingInput">Correo electrónico</label>
+            </div>
+            <div class="form-floating">
+                <input type="password" class="form-control" id="floatingPassword" placeholder="Contraseña">
+                <label for="floatingPassword">Contraseña</label>
+            </div>
+             <div class="form-floating">
+                <input type="password" class="form-control" id="floatingConfirmPassword" placeholder="Confirmar Contraseña">
+                <label for="floatingConfirmPassword">Repetir Contraseña</label>
+            </div>
+
+            <div class="checkbox mb-3">
+                <label>
+                    <input type="checkbox" value="terms"> Acepto los términos
+                </label>
+            </div>
+            <button class="w-100 btn btn-lg btn-primary" type="submit">Registrarse</button>
+            
+            <a href="dev.html" class="login-link">¿Ya tienes cuenta? Inicia sesión</a>
+            
+            <p class="mt-5 mb-3 text-muted">&copy; 2026</p>
+        </form>
+    </main>
+
+    <!-- Referencia al JS de Bootstrap -->
+    <script src="../js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
