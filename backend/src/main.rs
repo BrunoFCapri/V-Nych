@@ -1,7 +1,8 @@
 mod tasks;
+mod users;
 
 use axum::{
-    extract::State,
+    extract::{Path, State},
     routing::{get, post, patch, delete},
     Json, Router,
 };
@@ -73,6 +74,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/status", get(get_status))
         .route("/api/tasks", get(tasks::list_tasks).post(tasks::create_task))
         .route("/api/tasks/:id", patch(tasks::update_task).delete(tasks::delete_task))
+        .route("/api/auth/register", post(users::register))
+        .route("/api/auth/login", post(users::login))
         .layer(cors)
         .with_state(state);
 
