@@ -16,3 +16,6 @@ dotenvy = "0.15"
 tower-http = { version = "0.5", features = ["cors", "trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+argon2 = { version = "0.5.3", features = ["std"] }
+jsonwebtoken = "9.3.0"
+rand_core = "0.10.0"

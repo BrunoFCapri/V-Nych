@@ -1,4 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import Login from './pages/Login';
+import Register from './pages/Register';
 import './App.css';
 
 interface Status {
@@ -7,10 +11,11 @@ interface Status {
   redis: string;
 }
 
-function App() {
+function Dashboard() {
   const [status, setStatus] = useState<Status | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { logout, user } = useAuth();
 
   useEffect(() => {
     fetch('http://localhost:3000/api/status')
@@ -29,74 +34,47 @@ function App() {
       });
   }, []);
 
-  const enableDemoMode = () => {
-    setStatus({
-      status: 'Running (Demo)',
-      database: 'Connected (Mock)',
-      redis: 'Connected (Mock)',
-    });
-    setError(null);
-  };
-
   return (
     <div className="container">
       <header className="header">
         <h1>🌌 Chaja Mesh</h1>
         <p className="subtitle">Productivity Suite & Infra-Controller</p>
+        <div className="user-info">
+          <span>Hola, {user?.username}</span>
+          <button onClick={logout} className="logout-btn">Salir</button>
+        </div>
       </header>
       
       <main className="dashboard">
         <section className="card">
           <h2>System Status</h2>
-          {loading && <p>Loading system status...</p>}
-          {error && (
-            <div className="error-box">
-              <p>{error}</p>
-              <button className="demo-button" onClick={enableDemoMode}>
-                Enable Demo Mode
-              </button>
-            </div>
-          )}
+          {loading && <div className="loading">Checking connectivity...</div>}
+          {error && <div className="error">{error}</div>}
+          
           {status && (
             <div className="status-grid">
-              <div className="status-item">
-                <span className="label">Core Service</span>
-                <span className={`value ${status.status.includes('Running') ? 'ok' : 'error'}`}>
-                  {status.status}
-                </span>
+              <div className="status-item ok">
+                <span className="label">Backend Core</span>
+                <span className="value">Running</span>
               </div>
-              <div className="status-item">
-                <span className="label">Database (Postgres)</span>
-                <span className={`value ${status.database.includes('Connected') ? 'ok' : 'error'}`}>
-                  {status.database}
-                </span>
+              <div className={`status-item ${status.database === "Connected" ? 'ok' : 'error'}`}>
+                <span className="label">PostgreSQL</span>
+                <span className="value">{status.database}</span>
               </div>
-              <div className="status-item">
-                <span className="label">Cache (Redis)</span>
-                <span className={`value ${status.redis.includes('Connected') ? 'ok' : 'error'}`}>
-                  {status.redis}
-                </span>
+              <div className={`status-item ${status.redis === "Connected" ? 'ok' : 'error'}`}>
+                <span className="label">Redis Cache</span>
+                <span className="value">{status.redis}</span>
               </div>
             </div>
           )}
         </section>
 
-        <section className="features-grid">
-          <div className="card feature">
-            <h3>📅 Calendar Engine</h3>
-            <p>Native event logic implementation (RFC 5545) with push notifications.</p>
-          </div>
-          <div className="card feature">
-            <h3>📝 Block-Based Notes</h3>
-            <p>Notion-style notes with real-time persistence.</p>
-          </div>
-          <div className="card feature">
-            <h3>✅ Task Orchestrator</h3>
-            <p>Task management with priorities & lifecycle.</p>
-          </div>
-          <div className="card feature">
-            <h3>🐳 Infra-Controller</h3>
-            <p>Docker management & health monitoring.</p>
+        <section className="card">
+          <h2>Quick Actions</h2>
+          <div className="actions">
+            <button>New Note</button>
+            <button>Add Task</button>
+            <button>Sync Calendar</button>
           </div>
         </section>
       </main>
@@ -104,4 +82,26 @@ function App() {
   );
 }
 
-export default App;
+function ProtectedRoute({ children }: { children: ReactNode }) {
+  const { isAuthenticated } = useAuth();
+  return isAuthenticated ? children : <Navigate to="/login" />;
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+    </AuthProvider>
+  );
+}
