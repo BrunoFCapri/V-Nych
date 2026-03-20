@@ -283,7 +283,7 @@ const SidebarItem = ({ note, selectedId, onSelect, onDelete }: { note: any, sele
                     display: 'flex', 
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    backgroundColor: selectedId === note.id ? '#e0f2fe' : 'transparent',
+                    backgroundColor: selectedId === note.id ? '#1e3a8a' : 'transparent',
                     borderRadius: '4px',
                     position: 'relative',
                 }}
@@ -676,7 +676,13 @@ export default function Notes() {
                  console.error("createSubNote: Failed to patch parent!", await patchRes.text());
                  alert("Error: Link to subpage could not be saved to parent.");
             } else {
-                 console.log("createSubNote: Parent patched successfully.");
+                 console.log("createSubNote: Parent patched successfully, navigating to new note.");
+                 
+                 // 1. Update the parent note in our local notes list so when we return, it has the link
+                 setNotes(prev => prev.map(n => n.id === selectedNote.id ? { ...n, content: blocksForSave } : n));
+                 
+                 // 2. Navigate to the new note without saving the parent again (since we just did manually)
+                 selectNote(savedNote, false);
             }
 
         } else {
@@ -723,9 +729,9 @@ export default function Notes() {
     return () => clearTimeout(timeoutId);
   }, [blocks, title]); // Re-run when content changes
 
-  const selectNote = (note: Note) => {
+  const selectNote = (note: Note, saveCurrent = true) => {
     // Save previous note state before switching if there was a selection
-    if (selectedNote && blocks.length > 0) {
+    if (saveCurrent && selectedNote && blocks.length > 0) {
         // Fire and forget save for the previous note
         // Note: This uses the CLOSURE variables (blocks, title) of the CURRENT render
         // which correspond to the note we are leaving.
