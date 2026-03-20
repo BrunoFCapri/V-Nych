@@ -12,7 +12,7 @@ interface Note {
 
 interface Block {
   id: string;
-  type: 'text' | 'h1' | 'h2' | 'h3' | 'image' | 'note';
+  type: 'text' | 'h1' | 'h2' | 'h3' | 'image' | 'note' | 'bullet-list';
   content: string;
 }
 
@@ -211,45 +211,65 @@ const BlockInput = ({ block, index, isFocused, isSelected, updateBlock, onKeyDow
         );
     }
 
+    const isBullet = block.type === 'bullet-list';
+
     return (
-        <textarea
-            ref={textareaRef}
-            className={`block-input type-${block.type} ${isSelected ? 'selected' : ''}`}
-            value={block.content || ''}
-            onChange={e => updateBlock(block.id, e.target.value)}
-            onKeyDown={handleKeyDown}
-            onFocus={(e) => {
-                // If focus came from click, we might want to wait for click event to handle shift
-                // But generally onFocus runs before onClick.
-            }}
-            onClick={(e) => {
-                 onManualFocus(e.shiftKey);
-            }}
-            onMouseDown={(e) => {
-                // Track mouse down to enable drag selection
-                // If Shift is pressed, we want block selection, not text selection
-                if (e.shiftKey) {
-                    e.preventDefault();
-                    onManualFocus(true);
-                } else {
-                    // Always start selection tracking on mouse down
-                    onManualFocus(false);
-                }
-            }}
-            onMouseEnter={(e) => {
-                if (e.buttons === 1) { // If left mouse button is held down
-                    onMouseEnter();
-                }
-            }}
-            onPaste={onPaste}
-            placeholder={block.type === 'text' ? "Type '/' for commands" : `Heading ${block.type.replace('h', '')}`}
-            rows={1}
-            style={{ 
-                resize: 'none', 
-                overflow: 'hidden',
-                backgroundColor: isSelected ? 'rgba(170, 59, 255, 0.1)' : 'transparent'
-            }}
-        />
+        <div style={{ display: 'flex', alignItems: 'flex-start', position: 'relative' }}>
+            {isBullet && (
+                <span style={{ 
+                    marginRight: '8px', 
+                    marginLeft: '8px', 
+                    marginTop: '2px', // Align with text
+                    fontSize: '1em', 
+                    color: '#94a3b8',
+                    userSelect: 'none'
+                }}>•</span>
+            )}
+            <textarea
+                ref={textareaRef}
+                className={`block-input type-${block.type} ${isSelected ? 'selected' : ''}`}
+                value={block.content || ''}
+                onChange={e => updateBlock(block.id, e.target.value)}
+                onKeyDown={handleKeyDown}
+                onFocus={(e) => {
+                    // If focus came from click, we might want to wait for click event to handle shift
+                }}
+                onClick={(e) => {
+                     onManualFocus(e.shiftKey);
+                }}
+                onMouseDown={(e) => {
+                    if (e.shiftKey) {
+                        e.preventDefault();
+                        onManualFocus(true);
+                    } else {
+                        onManualFocus(false);
+                    }
+                }}
+                onMouseEnter={(e) => {
+                    if (e.buttons === 1) { 
+                        onMouseEnter();
+                    }
+                }}
+                onPaste={onPaste}
+                placeholder={block.type === 'text' ? "Type '/' for commands" : (isBullet ? "List item" : `Heading ${block.type.replace('h', '')}`)}
+                rows={1}
+                style={{ 
+                    resize: 'none', 
+                    overflow: 'hidden',
+                    backgroundColor: isSelected ? 'rgba(170, 59, 255, 0.1)' : 'transparent',
+                    flex: 1, // Take remaining space
+                    border: 'none',
+                    outline: 'none',
+                    background: 'transparent',
+                    color: 'inherit',
+                    fontFamily: 'inherit',
+                    fontSize: 'inherit',
+                    padding: 0,
+                    margin: 0,
+                    lineHeight: '1.5'
+                }}
+            />
+        </div>
     );
 };
 
@@ -795,6 +815,10 @@ export default function Notes() {
             setBlocks(prev => prev.map(b => b.id === id ? { ...b, type: 'image', content: '' } : b));
             return;
         }
+        if (content === '/list ' || content === '- ') {
+            setBlocks(prev => prev.map(b => b.id === id ? { ...b, type: 'bullet-list', content: '' } : b));
+            return;
+        }
     }
 
     setBlocks(prev => prev.map(b => b.id === id ? { ...b, content } : b));
@@ -856,7 +880,17 @@ export default function Notes() {
       if (selectionAnchor !== null) {
           setSelectionAnchor(null);
       }
-      addBlock(index, '');
+      
+      if (blocks[index].type === 'bullet-list') {
+         if (blocks[index].content === '') {
+             // If empty bullet, turn back to text
+              setBlocks(prev => prev.map((b, i) => i === index ? { ...b, type: 'text' } : b));
+         } else {
+              addBlock(index, '', 'bullet-list');
+         }
+      } else {
+         addBlock(index, '');
+      }
     } // If Backspace is pressed and selection exists
     else if (e.key === 'Backspace') {
        if (selectionAnchor !== null && selectionAnchor !== focusedBlockIndex) {
@@ -878,8 +912,18 @@ export default function Notes() {
               setBlocks(prev => prev.map((b, i) => i === index ? { ...b, type: 'text' } : b));
            } else {
               e.preventDefault();
+              // If it's a bullet list and we are at the start of it with content, convert to text?
+              // No, `blocks[index].content === ''` handles the empty case.
+              // What if content is NOT empty but we are at start?
+              // That's handled by default backspace if we don't preventDefault.
+              // But standard textarea doesn't know about "type".
               removeBlock(index);
            }
+       } else {
+           // Content not empty
+           // If at start of block (selectionStart === 0)
+           // and it is a list item, should we merge or convert to text?
+           // For now let's leave default behavior (merge with previous block text if possible)
        }
     }
   };
