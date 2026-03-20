@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -15,11 +15,81 @@ interface Block {
   content: string;
 }
 
+
+const BlockInput = ({ block, index, isFocused, updateBlock, onKeyDown, onFocusNext, onFocusPrev }: { 
+    block: Block, 
+    index: number,
+    isFocused: boolean,
+    updateBlock: (id: string, content: string) => void,
+    onKeyDown: (e: React.KeyboardEvent, index: number) => void,
+    onFocusNext: (current: number) => void,
+    onFocusPrev: (current: number) => void
+}) => {
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    useLayoutEffect(() => {
+        if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+            textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+        }
+    }, [block.content]);
+
+    useEffect(() => {
+        if (isFocused && textareaRef.current) {
+            textareaRef.current.focus();
+             // Always move cursor to end for consistency on focus entry
+             // (Desired behavior can be refined later e.g. based on direction)
+            const len = textareaRef.current.value.length;
+            textareaRef.current.setSelectionRange(len, len);
+        }
+    }, [isFocused]);
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.key === 'ArrowDown') {
+            const val = e.currentTarget.value;
+            const start = e.currentTarget.selectionStart;
+            // "At the end or in the last paragraph"
+            // We check if there is no newline character after the cursor position.
+            if (val.slice(start).indexOf('\n') === -1) {
+                // We are in the last logical paragraph
+                e.preventDefault();
+                onFocusNext(index);
+                return;
+            }
+        }
+        if (e.key === 'ArrowUp') {
+            const val = e.currentTarget.value;
+            const start = e.currentTarget.selectionStart;
+            // Check if there is no newline before the cursor
+            if (val.slice(0, start).lastIndexOf('\n') === -1) {
+                e.preventDefault();
+                onFocusPrev(index);
+                return;
+            }
+        }
+        onKeyDown(e, index);
+    };
+
+    return (
+        <textarea
+            ref={textareaRef}
+            className={`block-input type-${block.type}`}
+            value={block.content || ''}
+            onChange={e => updateBlock(block.id, e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={block.type === 'text' ? "Type '/' for commands" : `Heading ${block.type.replace('h', '')}`}
+            rows={1}
+            style={{ resize: 'none', overflow: 'hidden' }}
+        />
+    );
+};
+
 export default function Notes() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [blocks, setBlocks] = useState<Block[]>([{ id: crypto.randomUUID(), type: 'text', content: '' }]);
   const [title, setTitle] = useState('');
+  const [focusedBlockIndex, setFocusedBlockIndex] = useState<number>(-1);
   const { token, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -139,6 +209,7 @@ export default function Notes() {
     const newBlocks = [...blocks];
     newBlocks.splice(index + 1, 0, newBlock);
     setBlocks(newBlocks);
+    setFocusedBlockIndex(index + 1);
   };
 
   const removeBlock = (index: number) => {
@@ -146,8 +217,15 @@ export default function Notes() {
     const newBlocks = [...blocks];
     newBlocks.splice(index, 1);
     setBlocks(newBlocks);
+    setFocusedBlockIndex(index - 1 >= 0 ? index - 1 : 0);
   };
 
+  const handleFocus = (index: number) => {
+      if (index >= 0 && index < blocks.length) {
+          setFocusedBlockIndex(index);
+      }
+  };
+  
   const handleKeyDown = (e: React.KeyboardEvent, index: number) => {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -194,15 +272,15 @@ export default function Notes() {
             <div className="blocks-container">
               {blocks.map((block, index) => (
                 <div key={block.id} className="block-wrapper">
-                    <input
-                        className={`block-input type-${block.type}`}
-                        value={block.content || ''}
-                        onChange={e => updateBlock(block.id, e.target.value)}
-                        onKeyDown={e => handleKeyDown(e, index)}
-                        onBlur={saveNote}
-                        placeholder={block.type === 'text' ? "Type '/' for commands" : `Heading ${block.type.replace('h', '')}`}
-                        autoFocus={index === blocks.length - 1} 
-                    />
+                  <BlockInput 
+                      block={block}
+                      index={index}
+                      updateBlock={updateBlock}
+                      onKeyDown={handleKeyDown}
+                      isFocused={focusedBlockIndex === index}
+                      onFocusNext={() => handleFocus(index + 1)}
+                      onFocusPrev={() => handleFocus(index - 1)}
+                  />
                 </div>
               ))}
             </div>
