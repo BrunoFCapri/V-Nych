@@ -124,7 +124,7 @@ pub async fn list_events(
     
     let user_id = claims.user_id;
 
-    let query = if let (Some(start), Some(end)) = (params.start_date, params.end_date) {
+    let events = if let (Some(start), Some(end)) = (params.start_date, params.end_date) {
         // Filter by range overlap
         sqlx::query_as::<_, Event>(
             r#"
@@ -137,18 +137,19 @@ pub async fn list_events(
         .bind(user_id)
         .bind(start)
         .bind(end)
+        .fetch_all(&state.db)
+        .await
     } else {
         // No filter, return all (maybe limit?)
         sqlx::query_as::<_, Event>(
             "SELECT * FROM events WHERE user_id = $1 ORDER BY start_time ASC LIMIT 100"
         )
         .bind(user_id)
-    };
-
-    let events = query
         .fetch_all(&state.db)
         .await
-        .map_err(|e| {
+    };
+
+    let events = events.map_err(|e| {
             tracing::error!("Failed to fetch events: {:?}", e);
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
