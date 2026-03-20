@@ -19,12 +19,14 @@ pub struct Note {
     pub content: Value, // JSONB
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
+    pub parent_id: Option<Uuid>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct CreateNoteRequest {
     pub title: String,
     pub content: Value,
+    pub parent_id: Option<Uuid>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -53,16 +55,19 @@ pub async fn create_note(
     claims: Claims,
     Json(payload): Json<CreateNoteRequest>,
 ) -> Result<Json<Note>, (StatusCode, String)> {
+    tracing::info!("Creating note with payload: {:?}", payload);
+
     let note = sqlx::query_as::<_, Note>(
         r#"
-        INSERT INTO notes (user_id, title, content)
-        VALUES ($1, $2, $3)
+        INSERT INTO notes (user_id, title, content, parent_id)
+        VALUES ($1, $2, $3, $4)
         RETURNING *
         "#
     )
     .bind(claims.user_id)
     .bind(payload.title)
     .bind(payload.content)
+    .bind(payload.parent_id)
     .fetch_one(&state.db)
     .await
     .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
@@ -117,7 +122,7 @@ pub async fn update_note(
 }
 
 pub async fn delete_note(
-    State(state): State<AppState>,
+    State(state): State<AppState>,  
     claims: Claims,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, (StatusCode, String)> {
