@@ -26,6 +26,7 @@ pub struct Event {
     pub exdates: Option<Vec<String>>,
     pub parent_event_id: Option<Uuid>,
     pub recurrence_id: Option<DateTime<Utc>>,
+    pub color: String,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
 }
@@ -45,6 +46,7 @@ pub struct CreateEventPayload {
     pub exdates: Option<Vec<String>>,
     pub parent_event_id: Option<Uuid>,
     pub recurrence_id: Option<DateTime<Utc>>,
+    pub color: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -60,6 +62,7 @@ pub struct UpdateEventPayload {
     pub rrule: Option<String>,
     pub exdates: Option<Vec<String>>,
     pub recurrence_id: Option<DateTime<Utc>>,
+    pub color: Option<String>,
 }
 
 // Filter params for GET /api/calendar
@@ -86,9 +89,9 @@ pub async fn create_event(
         INSERT INTO events (
             user_id, title, description, start_time, end_time, 
             original_tz, status, transparency, visibility, rrule, exdates,
-            parent_event_id, recurrence_id
+            parent_event_id, recurrence_id, color
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::TEXT[], $12::UUID, $13::TIMESTAMPTZ)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::TEXT[], $12::UUID, $13::TIMESTAMPTZ, $14)
         RETURNING *
         "#,
     )
@@ -105,6 +108,7 @@ pub async fn create_event(
     .bind(&payload.exdates)
     .bind(payload.parent_event_id)
     .bind(payload.recurrence_id)
+    .bind(payload.color.unwrap_or_else(|| "#3b82f6".to_string()))
     .fetch_one(&state.db)
     .await
     .map_err(|e| {
@@ -207,8 +211,9 @@ pub async fn update_event(
             rrule = COALESCE($10, rrule),
             exdates = COALESCE($11, exdates),
             recurrence_id = COALESCE($12, recurrence_id),
+            color = COALESCE($13, color),
             updated_at = NOW()
-        WHERE id = $1 AND user_id = $13
+        WHERE id = $1 AND user_id = $14
         RETURNING *
         "#
     )
@@ -224,6 +229,7 @@ pub async fn update_event(
     .bind(payload.rrule)
     .bind(payload.exdates)
     .bind(payload.recurrence_id)
+    .bind(payload.color)
     .bind(claims.user_id)
     .fetch_optional(&state.db)
     .await

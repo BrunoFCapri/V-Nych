@@ -12,6 +12,7 @@ interface CalendarEvent {
   status: 'confirmed' | 'tentative' | 'cancelled';
   transparency: 'opaque' | 'transparent';
   visibility: 'public' | 'private' | 'confidential';
+  color: string;
 }
 
 type ViewMode = 'day' | 'week' | 'month';
@@ -26,6 +27,7 @@ export default function Calendar() {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newEventTitle, setNewEventTitle] = useState("");
+  const [newEventColor, setNewEventColor] = useState("#3b82f6");
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
 
@@ -56,6 +58,7 @@ export default function Calendar() {
       setNewEventStart(toLocalISOString(start));
       setNewEventEnd(toLocalISOString(end));
       setNewEventTitle("");
+      setNewEventColor("#3b82f6");
       setModalMode('create');
       setIsModalOpen(true);
   };
@@ -64,6 +67,7 @@ export default function Calendar() {
       setNewEventTitle(event.title);
       setNewEventStart(toLocalISOString(new Date(event.start_time)));
       setNewEventEnd(toLocalISOString(new Date(event.end_time)));
+      setNewEventColor(event.color || "#3b82f6");
       setSelectedEventId(event.id);
       setModalMode('edit');
       setIsModalOpen(true);
@@ -168,6 +172,7 @@ export default function Calendar() {
           title: newEventTitle,
           start_time: new Date(newEventStart).toISOString(),
           end_time: new Date(newEventEnd).toISOString(),
+          color: newEventColor,
           original_tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
           status: 'confirmed',
           transparency: 'opaque',
@@ -362,8 +367,8 @@ export default function Calendar() {
                                 }}
                              >
                                  <div style={{
-                                     backgroundColor: 'rgba(59, 130, 246, 0.9)',
-                                     borderLeft: '3px solid #1d4ed8',
+                                     backgroundColor: event.color || '#3b82f6',
+                                     borderLeft: '3px solid rgba(0,0,0,0.2)',
                                      height: '100%',
                                      borderRadius: '4px',
                                      padding: '4px',
@@ -446,7 +451,7 @@ export default function Calendar() {
                                             openModalEdit(ev);
                                         }}
                                         style={{ 
-                                            backgroundColor: '#3b82f6', 
+                                            backgroundColor: ev.color || '#3b82f6', 
                                             borderRadius: '3px', 
                                             padding: '2px 4px', 
                                             fontSize: '0.75rem', 
@@ -559,6 +564,29 @@ export default function Calendar() {
                             style={{ width: '100%', padding: '10px', backgroundColor: '#0f172a', border: '1px solid #334155', color: 'white', borderRadius: '6px' }}
                             required
                           />
+                      </div>
+                      <div style={{ marginBottom: '25px' }}>
+                          <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: '#94a3b8' }}>Color</label>
+                          <div style={{ display: 'flex', gap: '10px' }}>
+                            <input 
+                                type="color" 
+                                value={newEventColor}
+                                onChange={e => setNewEventColor(e.target.value)}
+                                style={{ width: '60px', height: '40px', padding: '0', backgroundColor: 'transparent', border: 'none', cursor: 'pointer' }}
+                            />
+                            <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+                                {['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#6366f1'].map(c => (
+                                    <div 
+                                        key={c}
+                                        onClick={() => setNewEventColor(c)}
+                                        style={{ 
+                                            width: '32px', height: '32px', borderRadius: '50%', backgroundColor: c, cursor: 'pointer',
+                                            border: newEventColor === c ? '2px solid white' : '2px solid transparent'
+                                        }}
+                                    />
+                                ))}
+                            </div>
+                          </div>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
                           <button type="button" onClick={() => setIsModalOpen(false)} style={{ padding: '10px 20px', background: 'transparent', border: '1px solid #475569', color: '#cbd5e1', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}>Cancel</button>
