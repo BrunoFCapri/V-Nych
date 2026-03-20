@@ -94,8 +94,8 @@ const BlockInput = ({ block, index, isFocused, isSelected, updateBlock, onKeyDow
                 if (e.shiftKey) {
                     e.preventDefault();
                     onManualFocus(true);
-                } else if (!isFocused) {
-                    // If simply clicking (no shift) and not focused, take focus
+                } else {
+                    // Always start selection tracking on mouse down
                     onManualFocus(false);
                 }
             }}
@@ -134,12 +134,21 @@ export default function Notes() {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
         if (e.defaultPrevented) return; // Respect existing preventDefault calls
 
+        const hasSelection = selectionAnchor !== null && selectionAnchor !== focusedBlockIndex;
+
+        // Deselect on Escape, Enter, or Space if multiple blocks selected
+        if (hasSelection && (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ')) {
+            setSelectionAnchor(null);
+            if (e.key === 'Escape') e.preventDefault();
+            // Allow Enter/Space to propagate to input for valid typing
+        }
+
         if (e.key === 'Backspace') {
             const target = e.target as HTMLElement;
             const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
             
             // If we have a multi-block selection, we want to delete blocks, not backspace text in one block
-            if (selectionAnchor !== null && selectionAnchor !== focusedBlockIndex) {
+            if (hasSelection) {
                  e.preventDefault();
                  const start = Math.min(selectionAnchor, focusedBlockIndex);
                  const end = Math.max(selectionAnchor, focusedBlockIndex);
