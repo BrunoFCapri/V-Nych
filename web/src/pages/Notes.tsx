@@ -371,6 +371,8 @@ export default function Notes() {
   const { token, logout } = useAuth();
   const navigate = useNavigate();
   // const editorRef = useRef<HTMLElement>(null); // Not used currently
+  const titleInputRef = useRef<HTMLInputElement>(null);
+  const shouldFocusTitleRef = useRef(false);
   
   const [isMouseSelecting, setIsMouseSelecting] = useState(false);
 
@@ -580,7 +582,7 @@ export default function Notes() {
         if (res.ok) {
             const savedNote = await res.json();
             setNotes(prev => [savedNote, ...prev]);
-            selectNote(savedNote);
+            selectNote(savedNote, true, true);
         } else {
             console.error("Failed to create note:", await res.text());
         }
@@ -601,12 +603,27 @@ export default function Notes() {
         });
         
         if (res.ok) {
-             setNotes(prev => prev.filter(n => n.id !== noteId)); // This might need a recursive filter if we kept full tree in state, but notes is flat list
-             if (selectedNote?.id === noteId) {
-                 setSelectedNote(null);
-                 setBlocks([]);
-                 setTitle('');
-             }
+             setNotes(prev => {
+                const getDescendants = (parentId: string, currentNotes: Note[]): string[] => {
+                   const children = currentNotes.filter(n => n.parent_id === parentId);
+                   let desc: string[] = children.map(c => c.id);
+                   children.forEach(child => {
+                       desc = [...desc, ...getDescendants(child.id, currentNotes)];
+                   });
+                   return desc;
+                };
+
+                const descendants = [noteId, ...getDescendants(noteId, prev)];
+                
+                // If the selected note is among those being deleted, clear it
+                if (selectedNote && descendants.includes(selectedNote.id)) {
+                    setSelectedNote(null);
+                    setTitle('');
+                    setBlocks([]);
+                }
+
+                return prev.filter(n => !descendants.includes(n.id));
+             });
         }
     } catch (e) {
         console.error("Error deleting note:", e);
@@ -702,7 +719,7 @@ export default function Notes() {
                  setNotes(prev => prev.map(n => n.id === selectedNote.id ? { ...n, content: blocksForSave } : n));
                  
                  // 2. Navigate to the new note without saving the parent again (since we just did manually)
-                 selectNote(savedNote, false);
+                 selectNote(savedNote, false, true);
             }
 
         } else {
@@ -718,8 +735,14 @@ export default function Notes() {
   const saveNote = async () => {
     if (!selectedNote || !token) return;
     
+    // Fallback to "Untitled" if title is empty
+    const currentTitle = title.trim() ? title : "Untitled";
+    if (!title.trim()) {
+        setTitle(currentTitle);
+    }
+    
     // Optimistic update locally
-    const updated = { ...selectedNote, title, content: blocks };
+    const updated = { ...selectedNote, title: currentTitle, content: blocks };
     setNotes(prev => prev.map(n => n.id === updated.id ? updated : n));
 
     // Persist to backend
@@ -730,7 +753,7 @@ export default function Notes() {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}` 
           },
-          body: JSON.stringify({ title, content: blocks })
+          body: JSON.stringify({ title: currentTitle, content: blocks })
         });
     } catch (e) {
         console.error("Failed to auto-save note:", e);
@@ -749,7 +772,7 @@ export default function Notes() {
     return () => clearTimeout(timeoutId);
   }, [blocks, title]); // Re-run when content changes
 
-  const selectNote = (note: Note, saveCurrent = true) => {
+  const selectNote = (note: Note, saveCurrent = true, focusTitle = false) => {
     // Save previous note state before switching if there was a selection
     if (saveCurrent && selectedNote && blocks.length > 0) {
         // Fire and forget save for the previous note
@@ -758,6 +781,7 @@ export default function Notes() {
         saveNote(); 
     }
 
+    shouldFocusTitleRef.current = focusTitle;
     setSelectedNote(note);
     setTitle(note.title);
     try {
@@ -789,6 +813,18 @@ export default function Notes() {
     setHistory([[{ id: generateId(), type: 'text', content: '' }]]);
     setHistoryPointer(0);
   };
+  
+  // Effect to focus title on new note
+  useEffect(() => {
+      if (shouldFocusTitleRef.current && titleInputRef.current) {
+          titleInputRef.current.focus();
+          // Short timeout to ensure value is set and can be selected
+          setTimeout(() => {
+              titleInputRef.current?.select();
+          }, 0);
+          shouldFocusTitleRef.current = false;
+      }
+  }, [selectedNote]);
 
   const updateBlock = (id: string, content: string) => {
     // Check for /page command or other commands
@@ -842,7 +878,15 @@ export default function Notes() {
 
 
   const handleFocus = (index: number, isShift: boolean = false) => {
-      if (index < 0 || index >= blocks.length) return;
+      // Focus title if going above block 0
+      if (index < 0) {
+          if (titleInputRef.current) {
+              titleInputRef.current.focus();
+              setFocusedBlockIndex(-1);
+          }
+          return;
+      }
+      if (index >= blocks.length) return;
       
       if (isShift) {
         if (selectionAnchor === null) {
@@ -1083,10 +1127,19 @@ export default function Notes() {
         {selectedNote ? (
           <>
             <input 
+              ref={titleInputRef}
               className="title-input"
               value={title} 
               onChange={e => setTitle(e.target.value)} 
               onBlur={saveNote}
+              onKeyDown={(e) => {
+                  if (e.key === 'ArrowDown' || e.key === 'Enter') {
+                      e.preventDefault();
+                      if (blocks.length > 0) {
+                          handleFocus(0);
+                      }
+                  }
+              }}
               placeholder="Untitled"
             />
             <div className="blocks-container">
