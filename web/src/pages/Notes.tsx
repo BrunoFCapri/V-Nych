@@ -16,14 +16,15 @@ interface Block {
 }
 
 
-const BlockInput = ({ block, index, isFocused, updateBlock, onKeyDown, onFocusNext, onFocusPrev }: { 
+const BlockInput = ({ block, index, isFocused, isSelected, updateBlock, onKeyDown, onFocusNext, onFocusPrev }: { 
     block: Block, 
     index: number,
     isFocused: boolean,
+    isSelected: boolean,
     updateBlock: (id: string, content: string) => void,
     onKeyDown: (e: React.KeyboardEvent, index: number) => void,
-    onFocusNext: (current: number) => void,
-    onFocusPrev: (current: number) => void
+    onFocusNext: (current: number, isShift: boolean) => void,
+    onFocusPrev: (current: number, isShift: boolean) => void
 }) => {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -53,7 +54,7 @@ const BlockInput = ({ block, index, isFocused, updateBlock, onKeyDown, onFocusNe
             if (val.slice(start).indexOf('\n') === -1) {
                 // We are in the last logical paragraph
                 e.preventDefault();
-                onFocusNext(index);
+                onFocusNext(index, e.shiftKey);
                 return;
             }
         }
@@ -63,7 +64,7 @@ const BlockInput = ({ block, index, isFocused, updateBlock, onKeyDown, onFocusNe
             // Check if there is no newline before the cursor
             if (val.slice(0, start).lastIndexOf('\n') === -1) {
                 e.preventDefault();
-                onFocusPrev(index);
+                onFocusPrev(index, e.shiftKey);
                 return;
             }
         }
@@ -73,13 +74,17 @@ const BlockInput = ({ block, index, isFocused, updateBlock, onKeyDown, onFocusNe
     return (
         <textarea
             ref={textareaRef}
-            className={`block-input type-${block.type}`}
+            className={`block-input type-${block.type} ${isSelected ? 'selected' : ''}`}
             value={block.content || ''}
             onChange={e => updateBlock(block.id, e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={block.type === 'text' ? "Type '/' for commands" : `Heading ${block.type.replace('h', '')}`}
             rows={1}
-            style={{ resize: 'none', overflow: 'hidden' }}
+            style={{ 
+                resize: 'none', 
+                overflow: 'hidden',
+                backgroundColor: isSelected ? 'rgba(170, 59, 255, 0.1)' : 'transparent'
+            }}
         />
     );
 };
@@ -90,6 +95,7 @@ export default function Notes() {
   const [blocks, setBlocks] = useState<Block[]>([{ id: crypto.randomUUID(), type: 'text', content: '' }]);
   const [title, setTitle] = useState('');
   const [focusedBlockIndex, setFocusedBlockIndex] = useState<number>(-1);
+  const [selectionAnchor, setSelectionAnchor] = useState<number | null>(null);
   const { token, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -220,24 +226,56 @@ export default function Notes() {
     setFocusedBlockIndex(index - 1 >= 0 ? index - 1 : 0);
   };
 
-  const handleFocus = (index: number) => {
-      if (index >= 0 && index < blocks.length) {
-          setFocusedBlockIndex(index);
+
+  const handleFocus = (index: number, isShift: boolean = false) => {
+      if (index < 0 || index >= blocks.length) return;
+      
+      if (isShift) {
+        if (selectionAnchor === null) {
+            // First time pressing shift: anchor is the current block (before update)
+            setSelectionAnchor(focusedBlockIndex);
+        }
+      } else {
+        setSelectionAnchor(null);
       }
+      setFocusedBlockIndex(index);
+  };
+
+  const isBlockSelected = (index: number) => {
+      if (selectionAnchor === null) return false;
+      const start = Math.min(selectionAnchor, focusedBlockIndex);
+      const end = Math.max(selectionAnchor, focusedBlockIndex);
+      return index >= start && index <= end;
   };
   
   const handleKeyDown = (e: React.KeyboardEvent, index: number) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       addBlock(index);
-    } else if (e.key === 'Backspace' && blocks[index].content === '') {
-      if (blocks[index].type !== 'text') {
+    } // If Backspace is pressed and selection exists
+    else if (e.key === 'Backspace') {
+       if (selectionAnchor !== null && selectionAnchor !== focusedBlockIndex) {
           e.preventDefault();
-          setBlocks(prev => prev.map((b, i) => i === index ? { ...b, type: 'text' } : b));
-      } else {
-          e.preventDefault();
-          removeBlock(index);
-      }
+          const start = Math.min(selectionAnchor, focusedBlockIndex);
+          const end = Math.max(selectionAnchor, focusedBlockIndex);
+          
+          // Remove range
+          const newBlocks = blocks.filter((_, i) => i < start || i > end);
+          if (newBlocks.length === 0) {
+             newBlocks.push({ id: generateId(), type: 'text', content: '' });
+          }
+          setBlocks(newBlocks);
+          setSelectionAnchor(null);
+          setFocusedBlockIndex(start > 0 ? start - 1 : 0);
+       } else if (blocks[index].content === '') {
+           if (blocks[index].type !== 'text') {
+              e.preventDefault();
+              setBlocks(prev => prev.map((b, i) => i === index ? { ...b, type: 'text' } : b));
+           } else {
+              e.preventDefault();
+              removeBlock(index);
+           }
+       }
     }
   };
 
@@ -278,8 +316,9 @@ export default function Notes() {
                       updateBlock={updateBlock}
                       onKeyDown={handleKeyDown}
                       isFocused={focusedBlockIndex === index}
-                      onFocusNext={() => handleFocus(index + 1)}
-                      onFocusPrev={() => handleFocus(index - 1)}
+                      isSelected={isBlockSelected(index)}
+                      onFocusNext={(next, isShift) => handleFocus(next + 1, isShift)}
+                      onFocusPrev={(prev, isShift) => handleFocus(prev - 1, isShift)}
                   />
                 </div>
               ))}
