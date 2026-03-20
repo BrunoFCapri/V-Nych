@@ -485,7 +485,10 @@ export default function Calendar() {
                 {(['day', 'week', 'month'] as ViewMode[]).map(mode => (
                     <button 
                         key={mode} 
-                        onClick={() => setViewMode(mode)} 
+                        onClick={() => {
+                            setViewMode(mode);
+                            if (mode === 'day') setCurrentDate(new Date());
+                        }} 
                         style={{ 
                             padding: '6px 16px', 
                             background: viewMode === mode ? '#3b82f6' : 'transparent', 
