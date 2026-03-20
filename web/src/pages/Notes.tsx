@@ -11,12 +11,12 @@ interface Note {
 
 interface Block {
   id: string;
-  type: 'text' | 'h1' | 'h2' | 'h3';
+  type: 'text' | 'h1' | 'h2' | 'h3' | 'image';
   content: string;
 }
 
 
-const BlockInput = ({ block, index, isFocused, isSelected, updateBlock, onKeyDown, onFocusNext, onFocusPrev, onManualFocus, onMouseEnter }: { 
+const BlockInput = ({ block, index, isFocused, isSelected, updateBlock, onKeyDown, onFocusNext, onFocusPrev, onManualFocus, onMouseEnter, onPaste }: { 
     block: Block, 
     index: number,
     isFocused: boolean,
@@ -26,9 +26,11 @@ const BlockInput = ({ block, index, isFocused, isSelected, updateBlock, onKeyDow
     onFocusNext: (current: number, isShift: boolean) => void,
     onFocusPrev: (current: number, isShift: boolean) => void,
     onManualFocus: (isShift: boolean) => void,
-    onMouseEnter: () => void
+    onMouseEnter: () => void,
+    onPaste: (e: React.ClipboardEvent) => void
 }) => {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const imageContainerRef = useRef<HTMLDivElement>(null);
     const [isMouseDown, setIsMouseDown] = useState(false);
 
     useLayoutEffect(() => {
@@ -39,12 +41,12 @@ const BlockInput = ({ block, index, isFocused, isSelected, updateBlock, onKeyDow
     }, [block.content]);
 
     useEffect(() => {
-        if (isFocused && textareaRef.current) {
-            textareaRef.current.focus();
-             // Always move cursor to end for consistency on focus entry
-             // (Desired behavior can be refined later e.g. based on direction)
-            // const len = textareaRef.current.value.length;
-            // textareaRef.current.setSelectionRange(len, len);
+        if (isFocused) {
+            if (textareaRef.current) {
+                textareaRef.current.focus();
+            } else if (imageContainerRef.current) {
+                imageContainerRef.current.focus();
+            }
         }
     }, [isFocused]);
 
@@ -73,6 +75,63 @@ const BlockInput = ({ block, index, isFocused, isSelected, updateBlock, onKeyDow
         }
         onKeyDown(e, index);
     };
+
+    if (block.type === 'image') {
+        const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+            const file = e.target.files?.[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                   updateBlock(block.id, reader.result as string);
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+
+        const handleImageKeyDown = (e: React.KeyboardEvent) => {
+             if (e.key === 'ArrowDown') {
+                 e.preventDefault();
+                 onFocusNext(index, e.shiftKey);
+             } else if (e.key === 'ArrowUp') {
+                 e.preventDefault();
+                 onFocusPrev(index, e.shiftKey);
+             } else {
+                 onKeyDown(e, index);
+             }
+        };
+
+        return (
+            <div 
+                ref={imageContainerRef}
+                tabIndex={0}
+                onKeyDown={handleImageKeyDown}
+                className={`block-input type-image ${isSelected ? 'selected' : ''}`}
+                style={{ 
+                    border: isSelected ? '2px solid #38bdf8' : 'none',
+                    padding: '10px',
+                    borderRadius: '4px',
+                    outline: 'none',
+                    backgroundColor: isSelected ? 'rgba(56, 189, 248, 0.1)' : 'transparent'
+                }}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    onManualFocus(e.shiftKey);
+                }}
+            >
+                {block.content ? (
+                    <img src={block.content} alt="User content" style={{ maxWidth: '100%', borderRadius: '4px' }} />
+                ) : (
+                    <input 
+                        type="file" 
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="file-input"
+                        style={{ color: '#94a3b8' }}
+                    />
+                )}
+            </div>
+        );
+    }
 
     return (
         <textarea
@@ -104,6 +163,7 @@ const BlockInput = ({ block, index, isFocused, isSelected, updateBlock, onKeyDow
                     onMouseEnter();
                 }
             }}
+            onPaste={onPaste}
             placeholder={block.type === 'text' ? "Type '/' for commands" : `Heading ${block.type.replace('h', '')}`}
             rows={1}
             style={{ 
@@ -265,6 +325,17 @@ export default function Notes() {
             // Prevent browser back navigation if not in an input
             if (!isInput) {
                 e.preventDefault();
+                // If a non-text block is focused (like an image), delete it on Backspace
+                if (focusedBlockIndex !== -1 && blocks[focusedBlockIndex]?.type !== 'text') {
+                     if (blocks.length > 1) {
+                        const newBlocks = blocks.filter((_, i) => i !== focusedBlockIndex);
+                        setBlocks(newBlocks);
+                        setFocusedBlockIndex(Math.max(0, focusedBlockIndex - 1));
+                     } else {
+                         // If it's the last block, maybe convert to text?
+                         setBlocks([{ id: generateId(), type: 'text', content: '' }]);
+                     }
+                }
             }
         }
     };
@@ -387,14 +458,15 @@ export default function Notes() {
             if (content === '# ') return { ...b, type: 'h1', content: '' };
             if (content === '## ') return { ...b, type: 'h2', content: '' };
             if (content === '### ') return { ...b, type: 'h3', content: '' };
+            if (content === '/image') return { ...b, type: 'image', content: '' };
         }
         
         return { ...b, content };
     }));
   };
 
-  const addBlock = (index: number) => {
-    const newBlock: Block = { id: generateId(), type: 'text', content: '' };
+  const addBlock = (index: number, content: string = '', type: Block['type'] = 'text') => {
+    const newBlock: Block = { id: generateId(), type, content };
     const newBlocks = [...blocks];
     newBlocks.splice(index + 1, 0, newBlock);
     setBlocks(newBlocks);
@@ -449,7 +521,7 @@ export default function Notes() {
       if (selectionAnchor !== null) {
           setSelectionAnchor(null);
       }
-      addBlock(index);
+      addBlock(index, '');
     } // If Backspace is pressed and selection exists
     else if (e.key === 'Backspace') {
        if (selectionAnchor !== null && selectionAnchor !== focusedBlockIndex) {
@@ -475,6 +547,116 @@ export default function Notes() {
            }
        }
     }
+  };
+
+
+  const handlePaste = async (e: React.ClipboardEvent, index: number) => {
+    const items = Array.from(e.clipboardData.items);
+    
+    // 1. Direct File Paste (Screenshots, Copied Files)
+    const imageItems = items.filter(item => item.type.startsWith('image/'));
+
+    if (imageItems.length > 0) {
+        e.preventDefault(); 
+        const text = e.clipboardData.getData('text/plain');
+        
+        let cursorStart = 0;
+        let cursorEnd = 0;
+        if (e.target instanceof HTMLTextAreaElement) {
+             cursorStart = e.target.selectionStart;
+             cursorEnd = e.target.selectionEnd;
+        }
+
+        const imagePromises = imageItems.map(item => {
+            return new Promise<string | null>((resolve) => {
+                const file = item.getAsFile();
+                if (!file) {
+                    resolve(null);
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.onerror = () => resolve(null);
+                reader.readAsDataURL(file);
+            });
+        });
+
+        const imagesContent = await Promise.all(imagePromises);
+        const validImages = imagesContent.filter((c): c is string => c !== null);
+
+        if (validImages.length === 0) return;
+
+        insertPastedContent(index, text, validImages, cursorStart, cursorEnd);
+        return;
+    }
+
+    // 2. HTML Paste (Webpages with Mixed Content)
+    // Sometimes images are not in `items` as files but as `<img>` tags in HTML
+    const html = e.clipboardData.getData('text/html');
+    if (html) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const imgs = doc.querySelectorAll('img');
+
+        if (imgs.length > 0) {
+            e.preventDefault();
+            const text = e.clipboardData.getData('text/plain');
+            
+            let cursorStart = 0;
+            let cursorEnd = 0;
+            if (e.target instanceof HTMLTextAreaElement) {
+                 cursorStart = e.target.selectionStart;
+                 cursorEnd = e.target.selectionEnd;
+            }
+
+            const imageUrls = Array.from(imgs).map(img => img.src).filter(src => src);
+            if (imageUrls.length > 0) {
+                 insertPastedContent(index, text, imageUrls, cursorStart, cursorEnd);
+            }
+        }
+    }
+  };
+
+  const insertPastedContent = (index: number, text: string, images: string[], cursorStart: number, cursorEnd: number) => {
+        setBlocks(prevBlocks => {
+            const newBlocks = [...prevBlocks];
+            const currentBlock = newBlocks[index];
+            
+            const imagesToInsert = [...images];
+            let insertIndex = index + 1;
+
+            if (text) {
+                // If appending to existing block, preserve type
+                const oldContent = currentBlock.content;
+                const start = Math.min(cursorStart, oldContent.length);
+                const end = Math.min(cursorEnd, oldContent.length);
+                
+                const newContent = oldContent.slice(0, start) + text + oldContent.slice(end);
+                newBlocks[index] = { ...currentBlock, content: newContent };
+            } else if (currentBlock.content.trim() === '') {
+                 // Replace current block with first image
+                 if (imagesToInsert.length > 0) {
+                     newBlocks[index] = { ...currentBlock, type: 'image', content: imagesToInsert[0] };
+                     imagesToInsert.shift(); 
+                 }
+                 // If there are more images, they go to index + 1
+                 insertIndex = index + 1;
+            } else {
+                 // No text pasted, but current block has content. Images go after.
+                 insertIndex = index + 1;
+            }
+
+            if (imagesToInsert.length > 0) {
+                const newImageBlocks: Block[] = imagesToInsert.map(img => ({
+                    id: crypto.randomUUID(),
+                    type: 'image',
+                    content: img
+                }));
+                newBlocks.splice(insertIndex, 0, ...newImageBlocks);
+            }
+            
+            return newBlocks;
+        });
   };
 
   return (
@@ -527,6 +709,7 @@ export default function Notes() {
                           }
                       }}
                       onMouseEnter={() => handleMouseEnter(index)}
+                      onPaste={(e) => handlePaste(e, index)}
                   />
                 </div>
               ))}
