@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Notes from './pages/Notes';
+import Calendar from './pages/Calendar';
 import { API_URL } from './config';
 import './App.css';
 
@@ -76,6 +77,7 @@ function Dashboard() {
           <h2>Quick Actions</h2>
           <div className="actions">
             <button onClick={() => navigate('/notes')}>My Notes</button>
+            <button onClick={() => navigate('/calendar')}>My Calendar</button>
             <button>Add Task</button>
             <button>Sync Calendar</button>
           </div>
@@ -101,6 +103,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <Notes />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/calendar"
+          element={
+            <ProtectedRoute>
+              <Calendar />
             </ProtectedRoute>
           }
         />
