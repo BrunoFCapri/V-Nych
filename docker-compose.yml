@@ -3,6 +3,7 @@ version: '3.8'
 services:
   db:
     image: postgres:15-alpine
+    container_name: chaja_db
     restart: always
     environment:
       POSTGRES_USER: postgres
@@ -15,6 +16,7 @@ services:
 
   redis:
     image: redis:7-alpine
+    container_name: chaja_redis
     restart: always
     ports:
       - "6379:6379"
@@ -22,6 +24,7 @@ services:
       - ./redis-data:/data
 
   backend:
+    container_name: ChajaMesh
     build: 
       context: ./backend
       dockerfile: Dockerfile
