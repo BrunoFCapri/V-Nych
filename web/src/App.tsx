@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Notes from './pages/Notes';
 import Calendar from './pages/Calendar';
+import Tasks from './pages/Tasks';
 import { API_URL } from './config';
 import './App.css';
 
@@ -78,7 +79,7 @@ function Dashboard() {
           <div className="actions">
             <button onClick={() => navigate('/notes')}>My Notes</button>
             <button onClick={() => navigate('/calendar')}>My Calendar</button>
-            <button>Add Task</button>
+            <button onClick={() => navigate('/tasks')}>My Tasks</button>
             <button>Sync Calendar</button>
           </div>
         </section>
@@ -111,6 +112,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <Calendar />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/tasks"
+          element={
+            <ProtectedRoute>
+              <Tasks />
             </ProtectedRoute>
           }
         />
