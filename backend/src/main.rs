@@ -74,8 +74,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app = Router::new()
         .route("/health", get(health_check))
         .route("/api/status", get(get_status))
+        // Tasks
         .route("/api/tasks", get(tasks::list_tasks).post(tasks::create_task))
         .route("/api/tasks/:id", patch(tasks::update_task).delete(tasks::delete_task))
+        // Lists
+        .route("/api/lists", get(tasks::get_lists).post(tasks::create_list))
+        .route("/api/lists/:id", patch(tasks::update_list).delete(tasks::delete_list))
         .route("/api/notes", get(notes::list_notes).post(notes::create_note))
         .route("/api/notes/:id", get(notes::get_note).patch(notes::update_note).delete(notes::delete_note))
         .route("/api/calendar/events", get(calendar::list_events).post(calendar::create_event))
