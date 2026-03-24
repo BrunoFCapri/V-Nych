@@ -20,13 +20,26 @@ export default function Register() {
         body: JSON.stringify({ username, email, password }),
       });
 
-      if (!res.ok) throw new Error('Error en el registro');
+      if (!res.ok) {
+        let errorMessage = 'Error en el registro';
+        try {
+            // Intenta parsear como JSON si el servidor devuelve JSON
+            const errorJson = await res.json();
+            errorMessage = errorJson.message || JSON.stringify(errorJson);
+        } catch {
+            // Si no es JSON, usa el texto plano
+            const errorText = await res.text();
+            if (errorText) errorMessage = errorText;
+        }
+        throw new Error(errorMessage);
+      }
 
       const data = await res.json();
       login(data.token, data.user);
       navigate('/');
-    } catch (err) {
-      setError('No se pudo registrar. Intenta con otro email/usuario.');
+    } catch (err: any) {
+      console.error("Registration error:", err);
+      setError(err.message || 'No se pudo registrar. Intenta con otro email/usuario.');
     }
   };
 

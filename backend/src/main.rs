@@ -1,6 +1,7 @@
 mod tasks;
 mod users;
 mod notes;
+mod calendar;
 
 use axum::{
     extract::{Path, State},
@@ -77,6 +78,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/tasks/:id", patch(tasks::update_task).delete(tasks::delete_task))
         .route("/api/notes", get(notes::list_notes).post(notes::create_note))
         .route("/api/notes/:id", get(notes::get_note).patch(notes::update_note).delete(notes::delete_note))
+        .route("/api/calendar/events", get(calendar::list_events).post(calendar::create_event))
+        .route("/api/calendar/events/:id", get(calendar::get_event).patch(calendar::update_event).delete(calendar::delete_event))
         .route("/api/auth/register", post(users::register))
         .route("/api/auth/login", post(users::login))
         .layer(cors)
