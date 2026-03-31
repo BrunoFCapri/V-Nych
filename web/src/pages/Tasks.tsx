@@ -1,4 +1,62 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+
+interface TaskAttachment {
+    id: string;
+    filename: string;
+    mime_type?: string;
+    uploaded_at?: string;
+}
+
+// Custom hook para manejar los attachments de tareas
+function useTaskAttachments(selectedTask: Task | null, token: string) {
+    const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
+    const [uploading, setUploading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+    useEffect(() => {
+        if (!selectedTask) return;
+        const fetchAttachments = async () => {
+            try {
+                const res = await fetch(`${API_URL}/api/tasks/${selectedTask.id}/attachments`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) setAttachments(await res.json());
+                else setAttachments([]);
+            } catch {
+                setAttachments([]);
+            }
+        };
+        fetchAttachments();
+    }, [selectedTask, token]);
+
+    // Upload handler
+    const handleFileUpload = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedTask || !fileInputRef.current || !fileInputRef.current.files?.length) return;
+        setUploading(true);
+        const formData = new FormData();
+        formData.append('file', fileInputRef.current.files[0]);
+        try {
+            const res = await fetch(`${API_URL}/api/tasks/${selectedTask.id}/attachments`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: formData
+            });
+            if (res.ok) {
+                // Refetch attachments
+                const updated = await fetch(`${API_URL}/api/tasks/${selectedTask.id}/attachments`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (updated.ok) setAttachments(await updated.json());
+                if (fileInputRef.current) fileInputRef.current.value = '';
+            }
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    return { attachments, setAttachments, uploading, setUploading, fileInputRef, handleFileUpload };
+}
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { API_URL } from '../config';
@@ -184,20 +242,21 @@ const TaskTreeItem = ({
 }
 
 export default function Tasks() {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [lists, setLists] = useState<TaskList[]>([]);
-  const [selectedListId, setSelectedListId] = useState<string | null>(null); // null = All Tasks
-  const [showStarredOnly, setShowStarredOnly] = useState(false);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
-  
-  const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [newListTitle, setNewListTitle] = useState('');
-  
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  
-  const { token, isAuthenticated } = useAuth();
+
+    const [tasks, setTasks] = useState<Task[]>([]);
+    const [lists, setLists] = useState<TaskList[]>([]);
+    const [selectedListId, setSelectedListId] = useState<string | null>(null); // null = All Tasks
+    const [showStarredOnly, setShowStarredOnly] = useState(false);
+    const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+    const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
+    const [newTaskTitle, setNewTaskTitle] = useState('');
+    const [newListTitle, setNewListTitle] = useState('');
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const { token, isAuthenticated } = useAuth();
+
+    // Hook para adjuntos de tareas (debe ir después de declarar selectedTask y token)
+    const { attachments, uploading, fileInputRef, handleFileUpload } = useTaskAttachments(selectedTask, token ?? '');
   const navigate = useNavigate();
 
   // --- Initial Load ---
@@ -723,7 +782,31 @@ export default function Tasks() {
                 </form>
             </div>
 
-            <div style={{ flex: 1 }}></div>
+
+                        {/* Attachments Section */}
+                        <div style={{ marginBottom: '20px' }}>
+                            <label style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '5px', display: 'block' }}>Attachments</label>
+                            <form onSubmit={handleFileUpload} style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '10px' }}>
+                                <input ref={fileInputRef} type="file" style={{ color: '#f8fafc', background: 'transparent' }} />
+                                <button type="submit" disabled={uploading} style={{ backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', padding: '6px 14px', cursor: 'pointer' }}>{uploading ? 'Uploading...' : 'Upload'}</button>
+                            </form>
+                            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                                {attachments.length === 0 && <li style={{ color: '#64748b', fontSize: '0.9rem' }}>No files uploaded.</li>}
+                                {attachments.map(att => (
+                                    <li key={att.id} style={{ marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <a
+                                            href={`${API_URL}/api/tasks/${selectedTask.id}/attachments/${att.id}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            style={{ color: '#38bdf8', textDecoration: 'underline', fontSize: '0.97rem', wordBreak: 'break-all' }}
+                                        >
+                                            {att.filename}
+                                        </a>
+                                        <span style={{ color: '#64748b', fontSize: '0.8rem' }}>{att.mime_type || ''}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
             
             <div style={{ fontSize: '0.75rem', color: '#64748b', textAlign: 'center' }}>
                 Created: {new Date(selectedTask.created_at || '').toLocaleDateString()}
