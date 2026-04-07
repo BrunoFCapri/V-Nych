@@ -20,7 +20,7 @@ type ViewMode = 'day' | 'week' | 'month';
 
 export default function Calendar() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const { token } = useAuth();
+    const { token, logout } = useAuth();
   const navigate = useNavigate();
 
   const [viewMode, setViewMode] = useState<ViewMode>('week');
@@ -29,7 +29,7 @@ export default function Calendar() {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newEventTitle, setNewEventTitle] = useState("");
-  const [newEventColor, setNewEventColor] = useState("#3b82f6");
+  const [newEventColor, setNewEventColor] = useState("var(--accent)");
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
 
@@ -60,7 +60,7 @@ export default function Calendar() {
       setNewEventStart(toLocalISOString(start));
       setNewEventEnd(toLocalISOString(end));
       setNewEventTitle("");
-      setNewEventColor("#3b82f6");
+      setNewEventColor("var(--accent)");
       setModalMode('create');
       setIsModalOpen(true);
   };
@@ -69,7 +69,7 @@ export default function Calendar() {
       setNewEventTitle(event.title);
       setNewEventStart(toLocalISOString(new Date(event.start_time)));
       setNewEventEnd(toLocalISOString(new Date(event.end_time)));
-      setNewEventColor(event.color || "#3b82f6");
+      setNewEventColor(event.color || "var(--accent)");
       setSelectedEventId(event.id);
       setModalMode('edit');
       setIsModalOpen(true);
@@ -159,10 +159,17 @@ export default function Calendar() {
     fetch(`${API_URL}/api/calendar/events?${query}`, {
       headers: { Authorization: `Bearer ${token}` }
     })
-    .then(res => res.json())
+        .then(async res => {
+            if (res.status === 401) {
+                logout();
+                navigate('/login');
+                return [];
+            }
+            return res.json();
+        })
     .then(data => setEvents(data))
     .catch(err => console.error(err));
-  }, [token, currentDate, viewMode]);
+    }, [token, currentDate, viewMode, logout, navigate]);
 
 
   // --- Event Creation / Update ---
@@ -198,6 +205,12 @@ export default function Calendar() {
               },
               body: JSON.stringify(payload)
           });
+
+          if (res.status === 401) {
+              logout();
+              navigate('/login');
+              return;
+          }
 
           if (res.ok) {
               const savedEvent = await res.json();
@@ -256,9 +269,9 @@ export default function Calendar() {
       return (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'hidden' }}>
             {/* Header / Week Days */}
-            <div style={{ display: 'flex', paddingLeft: '60px', borderBottom: '1px solid #1e293b' }}>
+            <div style={{ display: 'flex', paddingLeft: '60px', borderBottom: '1px solid var(--card-bg)' }}>
                 {viewDays.map((day, i) => (
-                    <div key={i} style={{ flex: 1, textAlign: 'center', padding: '10px 0', borderLeft: '1px solid #1e293b', fontWeight: isSameDate(day, new Date()) ? 'bold' : 'normal', color: isSameDate(day, new Date()) ? '#3b82f6' : '#94a3b8' }}>
+                    <div key={i} style={{ flex: 1, textAlign: 'center', padding: '10px 0', borderLeft: '1px solid var(--card-bg)', fontWeight: isSameDate(day, new Date()) ? 'bold' : 'normal', color: isSameDate(day, new Date()) ? 'var(--accent)' : 'var(--text-secondary)' }}>
                         <div>{day.toLocaleDateString('en-US', { weekday: 'short' })}</div>
                         <div style={{ fontSize: '1.2rem' }}>{day.getDate()}</div>
                     </div>
@@ -270,7 +283,7 @@ export default function Calendar() {
                 {/* Time Gutter */}
                 <div style={{ width: '60px', flexShrink: 0 }}>
                     {Array.from({ length: 24 }).map((_, i) => (
-                        <div key={i} style={{ height: '60px', borderBottom: '1px solid #1e293b', textAlign: 'right', paddingRight: '10px', fontSize: '0.8rem', color: '#64748b' }}>
+                        <div key={i} style={{ height: '60px', borderBottom: '1px solid var(--card-bg)', textAlign: 'right', paddingRight: '10px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                             {i}:00
                         </div>
                     ))}
@@ -280,12 +293,12 @@ export default function Calendar() {
                 <div style={{ flex: 1, position: 'relative', display: 'flex' }}>
                     {/* Background Grid Lines (Horizontal) */}
                     {Array.from({ length: 24 }).map((_, i) => (
-                        <div key={i} style={{ position: 'absolute', top: `${i * 60}px`, left: 0, right: 0, height: '60px', borderBottom: '1px solid #1e293b', pointerEvents: 'none' }}></div>
+                        <div key={i} style={{ position: 'absolute', top: `${i * 60}px`, left: 0, right: 0, height: '60px', borderBottom: '1px solid var(--card-bg)', pointerEvents: 'none' }}></div>
                     ))}
                     
                     {/* Column Borders (Vertical) */}
                     {viewDays.map((_, i) => (
-                        <div key={i} style={{ flex: 1, borderLeft: '1px solid #1e293b', height: '1440px', pointerEvents: 'none' }}></div>
+                        <div key={i} style={{ flex: 1, borderLeft: '1px solid var(--card-bg)', height: '1440px', pointerEvents: 'none' }}></div>
                     ))}
 
                     {/* Interaction Layer */}
@@ -369,7 +382,7 @@ export default function Calendar() {
                                 }}
                              >
                                  <div style={{
-                                     backgroundColor: event.color || '#3b82f6',
+                                     backgroundColor: event.color || 'var(--accent)',
                                      borderLeft: '3px solid rgba(0,0,0,0.2)',
                                      height: '100%',
                                      borderRadius: '4px',
@@ -400,7 +413,7 @@ export default function Calendar() {
     return (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
             {/* Header */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '1px solid #334155', backgroundColor: '#1e293b' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '1px solid var(--border)', backgroundColor: 'var(--card-bg)' }}>
                 {weekDays.map(d => (
                     <div key={d} style={{ padding: '10px', textAlign: 'center', fontWeight: 'bold' }}>{d}</div>
                 ))}
@@ -421,18 +434,18 @@ export default function Calendar() {
                                 openModalWithTimes(start, end);
                             }}
                             style={{ 
-                            borderRight: '1px solid #334155', 
-                            borderBottom: '1px solid #334155', 
+                            borderRight: '1px solid var(--border)', 
+                            borderBottom: '1px solid var(--border)', 
                             padding: '5px',
-                            backgroundColor: dayObj.isCurrentMonth ? 'transparent' : 'rgba(255,255,255,0.03)',
+                            backgroundColor: dayObj.isCurrentMonth ? 'transparent' : 'var(--accent-weak)',
                             overflow: 'hidden',
                             minHeight: '100px'
                         }}>
                             <div style={{ 
                                 marginBottom: '5px', 
-                                color: isSameDate(dayObj.date, new Date()) ? '#3b82f6' : 'inherit', 
+                                color: isSameDate(dayObj.date, new Date()) ? 'var(--accent)' : 'inherit', 
                                 fontWeight: isSameDate(dayObj.date, new Date()) ? 'bold' : 'normal',
-                                backgroundColor: isSameDate(dayObj.date, new Date()) ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+                                backgroundColor: isSameDate(dayObj.date, new Date()) ? 'var(--accent-weak)' : 'transparent',
                                 borderRadius: '50%',
                                 display: 'inline-block',
                                 width: '24px',
@@ -452,7 +465,7 @@ export default function Calendar() {
                                             openModalEdit(ev);
                                         }}
                                         style={{ 
-                                            backgroundColor: ev.color || '#3b82f6', 
+                                            backgroundColor: ev.color || 'var(--accent)', 
                                             borderRadius: '3px', 
                                             padding: '2px 4px', 
                                             fontSize: '0.75rem', 
@@ -477,9 +490,9 @@ export default function Calendar() {
   };
 
   return (
-    <div className="calendar-container" style={{ height: 'calc(100vh - 40px)', display: 'flex', flexDirection: 'column', color: '#e2e8f0', backgroundColor: '#0f172a' }}>
+    <div className="calendar-container" style={{ height: 'calc(100vh - 40px)', display: 'flex', flexDirection: 'column', color: 'var(--text-primary)', backgroundColor: 'var(--bg-color)' }}>
       {/* Heavy Header */}
-      <header style={{ padding: '20px', borderBottom: '1px solid #1e293b', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <header style={{ padding: '20px', borderBottom: '1px solid var(--card-bg)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
             <button 
                 onClick={() => navigate('/')} 
@@ -487,9 +500,9 @@ export default function Calendar() {
                 style={{ 
                     padding: '8px 12px', 
                     borderRadius: '6px', 
-                    border: '1px solid #334155', 
-                    backgroundColor: '#1e293b', 
-                    color: '#e2e8f0',
+                    border: '1px solid var(--border)', 
+                    backgroundColor: 'var(--card-bg)', 
+                    color: 'var(--text-primary)',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -499,7 +512,7 @@ export default function Calendar() {
                 ← Back
             </button>
             <h1 style={{ margin: 0, fontSize: '1.5rem' }}>Calendar</h1>
-            <div className="view-controls" style={{ display: 'flex', gap: '5px', backgroundColor: '#1e293b', padding: '4px', borderRadius: '6px' }}>
+            <div className="view-controls" style={{ display: 'flex', gap: '5px', backgroundColor: 'var(--card-bg)', padding: '4px', borderRadius: '6px' }}>
                 {(['day', 'week', 'month'] as ViewMode[]).map(mode => (
                     <button 
                         key={mode} 
@@ -509,10 +522,10 @@ export default function Calendar() {
                         }} 
                         style={{ 
                             padding: '6px 16px', 
-                            background: viewMode === mode ? '#3b82f6' : 'transparent', 
+                            background: viewMode === mode ? 'var(--accent)' : 'transparent', 
                             border: 'none', 
                             borderRadius: '4px', 
-                            color: viewMode === mode ? 'white' : '#94a3b8',
+                            color: viewMode === mode ? 'white' : 'var(--text-secondary)',
                             cursor: 'pointer',
                             textTransform: 'capitalize',
                             fontWeight: viewMode === mode ? 'bold' : 'normal',
@@ -526,15 +539,15 @@ export default function Calendar() {
         </div>
         <div className="nav-controls" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
              <button onClick={handleCreateEventClick} style={{ background: '#22c55e', border: 'none', color: 'white', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px' }}><span>+</span> New Event</button>
-             <div style={{ display: 'flex', alignItems: 'center', backgroundColor: '#1e293b', borderRadius: '6px', overflow: 'hidden', border: '1px solid #334155' }}>
-                 <button onClick={handlePrev} style={{ background: 'transparent', border: 'none', color: '#cbd5e1', padding: '8px 12px', cursor: 'pointer', borderRight: '1px solid #334155' }}>&lt;</button>
+             <div style={{ display: 'flex', alignItems: 'center', backgroundColor: 'var(--card-bg)', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border)' }}>
+                 <button onClick={handlePrev} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', padding: '8px 12px', cursor: 'pointer', borderRight: '1px solid var(--border)' }}>&lt;</button>
                  <span style={{ fontWeight: '600', padding: '0 15px', minWidth: '180px', textAlign: 'center', fontSize: '0.95rem' }}>
                      {viewMode === 'month' 
                         ? currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
                         : `${currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} ${viewMode === 'week' ? ` - ${getEndOfWeek(currentDate).getDate()}` : ''}`
                      }
                  </span>
-                 <button onClick={handleNext} style={{ background: 'transparent', border: 'none', color: '#cbd5e1', padding: '8px 12px', cursor: 'pointer', borderLeft: '1px solid #334155' }}>&gt;</button>
+                 <button onClick={handleNext} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', padding: '8px 12px', cursor: 'pointer', borderLeft: '1px solid var(--border)' }}>&gt;</button>
              </div>
         </div>
       </header>
@@ -552,42 +565,42 @@ export default function Calendar() {
               backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000,
               backdropFilter: 'blur(2px)'
           }}>
-              <div style={{ backgroundColor: '#1e293b', padding: '24px', borderRadius: '12px', width: '400px', border: '1px solid #334155', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
+              <div style={{ backgroundColor: 'var(--card-bg)', padding: '24px', borderRadius: '12px', width: '400px', border: '1px solid var(--border)', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
                   <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '1.25rem' }}>{modalMode === 'create' ? 'Create Event' : 'Edit Event'}</h3>
                   <form onSubmit={handleSaveEvent}>
                       <div style={{ marginBottom: '15px' }}>
-                          <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: '#94a3b8' }}>Title</label>
+                          <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Title</label>
                           <input 
                             type="text" 
                             value={newEventTitle} 
                             onChange={e => setNewEventTitle(e.target.value)} 
-                            style={{ width: '100%', padding: '10px', backgroundColor: '#0f172a', border: '1px solid #334155', color: 'white', borderRadius: '6px' }}
+                            style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border)', color: 'white', borderRadius: '6px' }}
                             placeholder="Meeting with team..."
                             required
                           />
                       </div>
                       <div style={{ marginBottom: '15px' }}>
-                          <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: '#94a3b8' }}>Start Time</label>
+                          <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Start Time</label>
                           <input 
                             type="datetime-local" 
                             value={newEventStart}
                             onChange={e => setNewEventStart(e.target.value)}
-                            style={{ width: '100%', padding: '10px', backgroundColor: '#0f172a', border: '1px solid #334155', color: 'white', borderRadius: '6px' }}
+                            style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border)', color: 'white', borderRadius: '6px' }}
                             required
                           />
                       </div>
                       <div style={{ marginBottom: '25px' }}>
-                          <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: '#94a3b8' }}>End Time</label>
+                          <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>End Time</label>
                           <input 
                             type="datetime-local" 
                             value={newEventEnd}
                             onChange={e => setNewEventEnd(e.target.value)}
-                            style={{ width: '100%', padding: '10px', backgroundColor: '#0f172a', border: '1px solid #334155', color: 'white', borderRadius: '6px' }}
+                            style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border)', color: 'white', borderRadius: '6px' }}
                             required
                           />
                       </div>
                       <div style={{ marginBottom: '25px' }}>
-                          <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: '#94a3b8' }}>Color</label>
+                          <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Color</label>
                           <div style={{ display: 'flex', gap: '10px' }}>
                             <input 
                                 type="color" 
@@ -596,7 +609,7 @@ export default function Calendar() {
                                 style={{ width: '60px', height: '40px', padding: '0', backgroundColor: 'transparent', border: 'none', cursor: 'pointer' }}
                             />
                             <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
-                                {['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#6366f1'].map(c => (
+                                {['var(--accent)', 'var(--error)', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#6366f1'].map(c => (
                                     <div 
                                         key={c}
                                         onClick={() => setNewEventColor(c)}
@@ -610,8 +623,8 @@ export default function Calendar() {
                           </div>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                          <button type="button" onClick={() => setIsModalOpen(false)} style={{ padding: '10px 20px', background: 'transparent', border: '1px solid #475569', color: '#cbd5e1', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}>Cancel</button>
-                          <button type="submit" style={{ padding: '10px 20px', background: '#3b82f6', border: 'none', color: 'white', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}>Save Event</button>
+                          <button type="button" onClick={() => setIsModalOpen(false)} style={{ padding: '10px 20px', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-secondary)', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}>Cancel</button>
+                          <button type="submit" style={{ padding: '10px 20px', background: 'var(--accent)', border: 'none', color: 'white', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}>Save Event</button>
                       </div>
                   </form>
               </div>

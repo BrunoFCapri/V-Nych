@@ -58,13 +58,10 @@ use axum::{
 };
 
 #[async_trait]
-impl<S> FromRequestParts<S> for Claims
-where
-    S: Send + Sync,
-{
+impl FromRequestParts<AppState> for Claims {
     type Rejection = (StatusCode, String);
 
-    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+    async fn from_request_parts(parts: &mut Parts, state: &AppState) -> Result<Self, Self::Rejection> {
         let auth_header = parts
             .headers
             .get("Authorization")
@@ -84,6 +81,18 @@ where
             &Validation::default(),
         )
         .map_err(|_| (StatusCode::UNAUTHORIZED, "Invalid token".to_string()))?;
+
+        let user_exists = sqlx::query_scalar::<_, bool>(
+            "SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)"
+        )
+        .bind(token_data.claims.user_id)
+        .fetch_one(&state.db)
+        .await
+        .map_err(|_| (StatusCode::UNAUTHORIZED, "Invalid token".to_string()))?;
+
+        if !user_exists {
+            return Err((StatusCode::UNAUTHORIZED, "Token user no longer exists".to_string()));
+        }
 
         Ok(token_data.claims)
     }
