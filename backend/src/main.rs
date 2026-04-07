@@ -35,7 +35,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Database connection string
     let database_url = std::env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "postgres://postgres:password@localhost:5432/chaja_mesh".to_string());
+        .unwrap_or_else(|_| "postgres://postgres:password@localhost:5432/v_nych".to_string());
 
     // Redis connection string
     let redis_url = std::env::var("REDIS_URL")

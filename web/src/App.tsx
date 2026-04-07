@@ -42,8 +42,8 @@ function Dashboard() {
   return (
     <div className="container">
       <header className="header">
-        <h1>🌌 Chaja Mesh</h1>
-        <p className="subtitle">Productivity Suite & Infra-Controller</p>
+        <h1>V-NYCH</h1>
+        <p className="subtitle">Private, Secure, Self-Hosted</p>
         <div className="user-info">
           <span>Hola, {user?.username}</span>
           <button onClick={logout} className="logout-btn">Salir</button>

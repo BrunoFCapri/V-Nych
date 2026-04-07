@@ -1,6 +1,6 @@
-# 🌌 Chaja Mesh: Productivity Suite
+# V-NYCH
 
-Una infraestructura de productividad integral, multiplataforma y de alto rendimiento desarrollada desde cero. Este ecosistema reemplaza la dependencia de servicios de terceros (Google Calendar, Notion, Google Tasks) mediante una arquitectura de microservicios soberana, diseñada para la eficiencia extrema en hardware local (**Raspberry Pi 5 / CapiOS**).
+Una infraestructura de productividad integral, multiplataforma y de alto rendimiento desarrollada desde cero. V-NYCH toma su identidad del manuscrito de Voynich y reemplaza la dependencia de servicios de terceros (Google Calendar, Notion, Google Tasks) mediante una arquitectura de microservicios soberana, diseñada para la eficiencia extrema en hardware local (**Raspberry Pi 5 / CapiOS**).
 
 ---
 
@@ -34,53 +34,112 @@ Una infraestructura de productividad integral, multiplataforma y de alto rendimi
 
 ```text
 [ Mobile App ] <───┐          [ Desktop / TUI ]
-                   │                 │
-                   ▼                 ▼
-        [ Reverse Proxy: Nginx/Traefik ]
-                   │
-       ├─► [ Service: Notes & Calendar (Rust) ] ──► [ PostgreSQL ]
-       │
-       ├─► [ Infra-Controller (Go) ] ────────────► [ Docker SDK ]
-       │
-       └─► [ Auth & Session (Redis) ]
+           │                 │
+           ▼                 ▼
+    [ Reverse Proxy: Nginx/Traefik ]
+           │
+   ├─► [ Service: Notes & Calendar (Rust) ] ──► [ PostgreSQL ]
+   │
+   ├─► [ Infra-Controller (Go) ] ────────────► [ Docker SDK ]
+   │
+   └─► [ Auth & Session (Redis) ]
 ```
 
 ---
 
-## 🚀 Getting Started
+## Origen Del Nombre
 
-Este proyecto consta de 3 partes principales:
-1. **Infraestructura**: Base de datos (PostgreSQL) y Caché (Redis) corriendo en Docker.
-2. **Backend**: API escrita en Rust (Axum).
-3. **Web**: Frontend escrito en React + TypeScript.
+`V-NYCH` está inspirado en el **manuscrito de Voynich**: una referencia a conocimiento cifrado, privado y difícil de exponer sin contexto. El nombre refleja la idea central del proyecto: datos personales bajo control del usuario, sin depender de plataformas externas.
 
-### 📋 Prerrequisitos
+## Estado Actual Del Proyecto
 
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-- [Rust](https://www.rust-lang.org/tools/install)
-- [Node.js & npm](https://nodejs.org/)
+Actualmente el repositorio incluye:
 
-### 🛠️ Instrucciones de Ejecución
+- **Autenticación JWT** (registro/login) con protección por usuario.
+- **Notas tipo bloques** con contenido JSON y soporte de jerarquía (`parent_id`).
+- **Calendario** con CRUD de eventos, colores y filtros por rango de fechas.
+- **Tareas y listas** con estados, prioridad, subtareas y elementos destacados.
+- **Adjuntos en tareas**: subir, listar, descargar y eliminar archivos por tarea.
+- **Health checks** para backend, PostgreSQL y Redis.
+- **Infra local con Docker Compose** para DB + caché.
 
-#### 1. Iniciar Infraestructura (Postgres & Redis)
-Ejecuta esto en la raíz del proyecto para levantar la base de datos y cache:
+## Stack Tecnologico
+
+- **Backend**: Rust, Axum, Tokio, SQLx
+- **Frontend**: React + TypeScript + Vite
+- **Base de datos**: PostgreSQL
+- **Cache / sesiones**: Redis
+- **Infra**: Docker Compose
+
+## Arquitectura (Resumen)
+
+```text
+Web (React + Vite)
+       |
+       v
+API REST (Rust / Axum)
+   |                 |
+   v                 v
+PostgreSQL         Redis
+```
+
+## Endpoints Principales
+
+- `GET /health`
+- `GET /api/status`
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `GET|POST /api/notes`
+- `GET|PATCH|DELETE /api/notes/:id`
+- `GET|POST /api/calendar/events`
+- `GET|PATCH|DELETE /api/calendar/events/:id`
+- `GET|POST /api/tasks`
+- `PATCH|DELETE /api/tasks/:id`
+- `GET|POST /api/tasks/:id/attachments`
+- `GET|DELETE /api/tasks/:id/attachments/:attachment_id`
+
+## Puesta En Marcha
+
+### Inicio Rapido (1 comando)
+
+Desde la raiz del proyecto:
+
+```powershell
+pwsh -File .\dev-up.ps1
+```
+
+Esto levanta contenedores, valida/crea la DB `v_nych`, reinicia backend y arranca el frontend en modo desarrollo.
+
+### Apagar Servicios
+
+```powershell
+pwsh -File .\dev-down.ps1
+```
+
+Si tambien quieres borrar los datos locales de Docker (volumenes):
+
+```powershell
+pwsh -File .\dev-down.ps1 -PruneData
+```
+
+### 1. Levantar infraestructura
+
+Desde la raiz del proyecto:
 
 ```bash
 docker-compose up -d
 ```
 
-#### 2. Iniciar Backend (Rust)
-Abre una nueva terminal:
+### 2. Ejecutar backend
 
 ```bash
 cd backend
 cargo run
 ```
 
-El servidor estará corriendo en `http://localhost:3000`.
+Backend disponible en `http://localhost:3000`.
 
-#### 3. Iniciar Frontend Web (React)
-Abre otra terminal:
+### 3. Ejecutar frontend
 
 ```bash
 cd web
@@ -88,13 +147,11 @@ npm install
 npm run dev
 ```
 
-La web estará disponible en `http://localhost:5173`.
+Frontend disponible en `http://localhost:5173`.
 
-### 🧪 Verificar Conexión
-Una vez que todo esté corriendo, abre la web. Deberías ver el estado "Connected" para Database y Redis en el panel de control.
+## Estructura Del Repositorio
 
-## 🏗️ Estructura del Proyecto
-
-- `backend/`: Código fuente del servidor Rust.
-- `web/`: Código fuente del cliente web React.
-- `docker-compose.yml`: Definición de servicios de infraestructura.
+- `backend/`: API en Rust (modulos de usuarios, notas, calendario y tareas).
+- `backend/migrations/`: migraciones SQL de la base de datos.
+- `web/`: aplicacion web en React + TypeScript.
+- `docker-compose.yml`: servicios locales (PostgreSQL, Redis, backend).
