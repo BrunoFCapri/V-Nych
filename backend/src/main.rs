@@ -1,14 +1,16 @@
 mod tasks;
+mod users;
+mod notes;
+mod calendar;
 
 use axum::{
-    extract::State,
-    routing::{get, post, patch, delete},
+    extract::{State},
+    routing::{get, post, patch},
     Json, Router,
 };
-use serde::{Deserialize, Serialize};
+use serde::{Serialize};
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use std::net::SocketAddr;
-use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
 use tracing_subscriber::{layer::SubscriberExt as _, util::SubscriberInitExt as _};
 
@@ -39,12 +41,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let redis_url = std::env::var("REDIS_URL")
         .unwrap_or_else(|_| "redis://localhost:6379/".to_string());
 
-    // Connect to Postgres
-    let pool = PgPoolOptions::new()
-        .max_connections(5)
-        .connect(&database_url)
-        .await
-        .expect("Failed to connect to Postgres");
+    // Connect to Postgres with retries
+    let pool = loop {
+        match PgPoolOptions::new()
+            .max_connections(5)
+            .connect(&database_url)
+            .await
+        {
+            Ok(pool) => break pool,
+            Err(e) => {
+                tracing::error!("Failed to connect to Postgres: {}. Retrying in 5 seconds...", e);
+                tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+            }
+        }
+    };
 
     tracing::info!("Running migrations...");
     sqlx::migrate!("./migrations")
@@ -71,8 +81,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app = Router::new()
         .route("/health", get(health_check))
         .route("/api/status", get(get_status))
+        // Tasks
         .route("/api/tasks", get(tasks::list_tasks).post(tasks::create_task))
         .route("/api/tasks/:id", patch(tasks::update_task).delete(tasks::delete_task))
+        // Task Attachments
+        .route("/api/tasks/:id/attachments", post(tasks::upload_task_attachment).get(tasks::list_task_attachments))
+        .route("/api/tasks/:id/attachments/:attachment_id", get(tasks::download_task_attachment).delete(tasks::delete_task_attachment))
+        // Lists
+        .route("/api/lists", get(tasks::get_lists).post(tasks::create_list))
+        .route("/api/lists/:id", patch(tasks::update_list).delete(tasks::delete_list))
+        .route("/api/notes", get(notes::list_notes).post(notes::create_note))
+        .route("/api/notes/:id", get(notes::get_note).patch(notes::update_note).delete(notes::delete_note))
+        .route("/api/calendar/events", get(calendar::list_events).post(calendar::create_event))
+        .route("/api/calendar/events/:id", get(calendar::get_event).patch(calendar::update_event).delete(calendar::delete_event))
+        .route("/api/auth/register", post(users::register))
+        .route("/api/auth/login", post(users::login))
         .layer(cors)
         .with_state(state);
 
