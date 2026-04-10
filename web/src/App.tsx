@@ -99,7 +99,7 @@ function Dashboard() {
   }, [allServicesConnected]);
 
   const beetleStateClass =
-    beetleState === 'online' ? 'beetle-online' : beetleState === 'offline' ? 'beetle-offline' : '';
+    beetleState === 'online' ? 'beetle-offline' : beetleState === 'offline' ? 'beetle-online' : '';
 
   return (
     <div className="container">
