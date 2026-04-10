@@ -293,6 +293,14 @@ export default function Calendar() {
              d1.getDate() === d2.getDate();
   };
 
+  const getDayBounds = (date: Date) => {
+      const start = new Date(date);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(start);
+      end.setDate(end.getDate() + 1);
+      return { start, end };
+  };
+
   useEffect(() => {
       const intervalId = window.setInterval(() => {
           setNow(new Date());
@@ -341,7 +349,7 @@ export default function Calendar() {
                 </div>
 
                 {/* Columns & Events */}
-                <div style={{ flex: 1, position: 'relative', display: 'flex' }}>
+                <div style={{ flex: 1, position: 'relative', display: 'flex', height: '1440px' }}>
                     {/* Background Grid Lines (Horizontal) */}
                     {Array.from({ length: 24 }).map((_, i) => (
                         <div key={i} style={{ position: 'absolute', top: `${i * 60}px`, left: 0, right: 0, height: '60px', borderBottom: '1px solid var(--card-bg)', pointerEvents: 'none' }}></div>
@@ -354,7 +362,7 @@ export default function Calendar() {
 
                     {/* Interaction Layer */}
                     <div 
-                        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 5, cursor: 'crosshair' }}
+                        style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1440px', zIndex: 5, cursor: 'crosshair' }}
                         // Calculate Time logic needs to use offsetY from event if relative, but getBoundingClientRect is safer due to scrolling
                         onClick={(e) => {
                             const rect = e.currentTarget.getBoundingClientRect();
@@ -390,64 +398,57 @@ export default function Calendar() {
                     ></div>
 
                     {/* Events */}
-                    {events.map(event => {
+                    {events.flatMap(event => {
                          const start = new Date(event.start_time);
                          const end = new Date(event.end_time);
-                         
-                         // Determine column index
-                         let colIndex = -1;
-                         if (viewMode === 'day') {
-                             if (isSameDate(start, currentDate)) colIndex = 0;
-                         } else {
-                            // Week view logic
-                            const diffTime = start.getTime() - startOfWeek.getTime();
-                            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                            if (diffDays >= 0 && diffDays < 7) colIndex = diffDays;
-                         }
-
-                         if (colIndex === -1) return null;
-
-                         const startHours = start.getHours() + start.getMinutes() / 60;
-                         const durationHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-                        
-                         // Calculate width and left position
                          const widthPercent = 100 / daysToShow;
-                         const leftPercent = colIndex * widthPercent;
 
-                         return (
-                             <div 
-                                key={event.id}
-                                title={event.title}
-                                onClick={(e) => { 
-                                    e.stopPropagation(); 
-                                    openModalEdit(event);
-                                }}
-                                style={{
-                                    position: 'absolute',
-                                    top: `${startHours * 60}px`, // 60px per hour
-                                    height: `${Math.max(durationHours * 60, 25)}px`,
-                                    left: `${leftPercent}%`,
-                                    width: `${widthPercent}%`,
-                                    padding: '2px',
-                                    zIndex: 10
-                                }}
-                             >
-                                 <div style={{
-                                     backgroundColor: event.color || 'var(--accent)',
-                                     borderLeft: '3px solid rgba(0,0,0,0.2)',
-                                     height: '100%',
-                                     borderRadius: '4px',
-                                     padding: '4px',
-                                     fontSize: '0.75rem',
-                                     overflow: 'hidden',
-                                     cursor: 'pointer',
-                                     color: 'white'
-                                 }}>
-                                    <strong>{event.title}</strong>
-                                    <div>{start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                         return viewDays.map((day, colIndex) => {
+                             const { start: dayStart, end: dayEnd } = getDayBounds(day);
+                             const segmentStart = start > dayStart ? start : dayStart;
+                             const segmentEnd = end < dayEnd ? end : dayEnd;
+
+                             if (segmentStart >= segmentEnd) return null;
+
+                             const startHours = segmentStart.getHours() + segmentStart.getMinutes() / 60;
+                             const durationHours = (segmentEnd.getTime() - segmentStart.getTime()) / (1000 * 60 * 60);
+                             const leftPercent = colIndex * widthPercent;
+
+                             return (
+                                 <div 
+                                    key={`${event.id}-${day.toISOString()}`}
+                                    title={event.title}
+                                    onClick={(e) => { 
+                                        e.stopPropagation(); 
+                                        openModalEdit(event);
+                                    }}
+                                    style={{
+                                        position: 'absolute',
+                                        top: `${startHours * 60}px`,
+                                        height: `${Math.max(durationHours * 60, 25)}px`,
+                                        left: `${leftPercent}%`,
+                                        width: `${widthPercent}%`,
+                                        padding: '2px',
+                                        zIndex: 10
+                                    }}
+                                 >
+                                     <div style={{
+                                         backgroundColor: event.color || 'var(--accent)',
+                                         borderLeft: '3px solid rgba(0,0,0,0.2)',
+                                         height: '100%',
+                                         borderRadius: '4px',
+                                         padding: '4px',
+                                         fontSize: '0.75rem',
+                                         overflow: 'hidden',
+                                         cursor: 'pointer',
+                                         color: 'white'
+                                     }}>
+                                        <strong>{event.title}</strong>
+                                        <div>{segmentStart.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                                     </div>
                                  </div>
-                             </div>
-                         );
+                             );
+                         });
                     })}
 
                     {/* Current time indicator */}
@@ -500,7 +501,12 @@ export default function Calendar() {
             {/* Grid */}
             <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gridAutoRows: 'minmax(100px, 1fr)', overflowY: 'auto' }}>
                 {days.map((dayObj, i) => {
-                    const dayEvents = events.filter(e => isSameDate(new Date(e.start_time), dayObj.date));
+                    const { start: dayStart, end: dayEnd } = getDayBounds(dayObj.date);
+                    const dayEvents = events.filter(e => {
+                        const eventStart = new Date(e.start_time);
+                        const eventEnd = new Date(e.end_time);
+                        return eventStart < dayEnd && eventEnd > dayStart;
+                    });
                     
                     return (
                         <div key={i} 
@@ -710,7 +716,7 @@ export default function Calendar() {
                                   <button
                                       type="button"
                                       onClick={handleDeleteEvent}
-                                      style={{ padding: '10px 20px', background: 'var(--error)', border: 'none', color: 'white', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}
+                                      style={{ padding: '10px 20px', background: '#590902', border: 'none', color: 'white', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}
                                   >
                                       Delete Event
                                   </button>
