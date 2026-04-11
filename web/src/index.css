@@ -69,6 +69,7 @@
   box-sizing: border-box;
   position: relative;
   z-index: 1;
+  zoom: 0.75;
 }
 
 body {
