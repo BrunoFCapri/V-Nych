@@ -7,7 +7,7 @@ import Register from './pages/Register';
 import Notes from './pages/Notes';
 import Calendar from './pages/Calendar';
 import Tasks from './pages/Tasks';
-import AdminDashboard from './pages/AdminDashboard';
+import AdminDashboard from './pages/AdminDashboard.tsx';
 import { API_URL } from './config';
 import { calendarIcon, folderIcon, starIcon, taskIcon } from './assets/icons';
 import beetleTorso from './assets/logo/beetle/torso.svg';

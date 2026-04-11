@@ -228,7 +228,13 @@ export default function AdminDashboard() {
           </p>
         </div>
         <div className="admin-hero__actions">
-          <button className="action-btn" onClick={() => navigate('/')}>
+          <button
+            className="action-btn"
+            onClick={() => {
+              setUserDetail(null);
+              navigate('/admin');
+            }}
+          >
             Volver al dashboard
           </button>
           <button className="action-btn action-btn--danger" onClick={logout}>

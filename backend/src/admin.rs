@@ -270,8 +270,8 @@ pub struct UserDetailResponse {
 
 pub async fn user_detail(
     State(state): State<AppState>,
-    claims: Claims,
     Path(user_id): Path<Uuid>,
+    claims: Claims,
 ) -> Result<Json<UserDetailResponse>, (StatusCode, String)> {
     if !claims.is_admin {
         return Err((StatusCode::FORBIDDEN, "Admin access only".to_string()));
