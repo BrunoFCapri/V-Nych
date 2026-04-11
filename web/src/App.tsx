@@ -7,6 +7,7 @@ import Register from './pages/Register';
 import Notes from './pages/Notes';
 import Calendar from './pages/Calendar';
 import Tasks from './pages/Tasks';
+import AdminDashboard from './pages/AdminDashboard.tsx';
 import { API_URL } from './config';
 import { calendarIcon, folderIcon, starIcon, taskIcon } from './assets/icons';
 import beetleTorso from './assets/logo/beetle/torso.svg';
@@ -1059,12 +1060,30 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   return isAuthenticated ? children : <Navigate to="/login" />;
 }
 
+function AdminRoute({ children }: { children: ReactNode }) {
+  const { isAuthenticated, user } = useAuth();
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" />;
+  }
+
+  return user?.is_admin ? children : <Navigate to="/" />;
+}
+
 export default function App() {
   return (
     <AuthProvider>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <AdminDashboard />
+            </AdminRoute>
+          }
+        />
         <Route
           path="/notes"
           element={
