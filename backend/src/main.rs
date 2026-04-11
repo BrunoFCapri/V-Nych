@@ -1,10 +1,11 @@
 mod tasks;
+mod admin;
 mod users;
 mod notes;
 mod calendar;
 
 use axum::{
-    extract::{State},
+    extract::State,
     routing::{get, post, patch},
     Json, Router,
 };
@@ -96,6 +97,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/calendar/events/:id", get(calendar::get_event).patch(calendar::update_event).delete(calendar::delete_event))
         .route("/api/auth/register", post(users::register))
         .route("/api/auth/login", post(users::login))
+        .route("/api/admin/overview", get(admin::overview))
+        .route("/api/admin/user/:user_id", get(admin::user_detail))
         .layer(cors)
         .with_state(state);
 

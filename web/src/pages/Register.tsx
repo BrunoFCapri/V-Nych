@@ -22,14 +22,15 @@ export default function Register() {
 
       if (!res.ok) {
         let errorMessage = 'Error en el registro';
-        try {
-            // Intenta parsear como JSON si el servidor devuelve JSON
-            const errorJson = await res.json();
-            errorMessage = errorJson.message || JSON.stringify(errorJson);
-        } catch {
-            // Si no es JSON, usa el texto plano
-            const errorText = await res.text();
-            if (errorText) errorMessage = errorText;
+        const errorBody = await res.text();
+
+        if (errorBody) {
+          try {
+            const errorJson = JSON.parse(errorBody) as { message?: string };
+            errorMessage = errorJson.message || errorBody;
+          } catch {
+            errorMessage = errorBody;
+          }
         }
         throw new Error(errorMessage);
       }
