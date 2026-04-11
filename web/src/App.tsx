@@ -982,9 +982,12 @@ function Dashboard() {
   return (
     <div className="container">
       <header className="header">
-        <h1>V-NYCH</h1>
-        <p className="subtitle">Private, Secure, Self-Hosted</p>
-        <div className="user-info">
+        <div className="header__copy">
+          <p className="eyebrow header__eyebrow">Workspace</p>
+          <h1>V-NYCH</h1>
+          <p className="subtitle header__subtitle">Private, Secure, Self-Hosted</p>
+        </div>
+        <div className="user-info header__user-info">
           <span>Hola, {user?.username}</span>
           <button onClick={logout} className="logout-btn">Salir</button>
         </div>
