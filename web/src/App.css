@@ -300,6 +300,8 @@ h1 {
 .fluid-mini__scene .cluster-cube-scene__canvas {
   position: absolute;
   inset: 0;
+  transform: translate3d(12%, 0, 0);
+  transform-origin: center center;
 }
 
 .fluid-mini__scene .cluster-cube-scene__canvas--back {
@@ -635,6 +637,7 @@ h1 {
 
   .cluster-cube-scene__canvas {
     min-height: 280px;
+    transform: translate3d(8%, 0, 0);
   }
 
   .fluid-mini__beetle-overlay .beetle-logo {
