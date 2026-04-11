@@ -1,3 +1,31 @@
+/* Oculta la barra de scroll pero permite el scroll */
+body, .sidebar, .user-detail-panel, .editor, .notes-list, .admin-shell, .admin-panel, .table-wrap {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: #23272e #181a1b; /* thumb color, track color */
+}
+body::-webkit-scrollbar,
+.sidebar::-webkit-scrollbar,
+.user-detail-panel::-webkit-scrollbar,
+.editor::-webkit-scrollbar,
+.notes-list::-webkit-scrollbar,
+.admin-shell::-webkit-scrollbar,
+.admin-panel::-webkit-scrollbar,
+.table-wrap::-webkit-scrollbar {
+  width: 3px;
+  background: #181a1b;
+}
+body::-webkit-scrollbar-thumb,
+.sidebar::-webkit-scrollbar-thumb,
+.user-detail-panel::-webkit-scrollbar-thumb,
+.editor::-webkit-scrollbar-thumb,
+.notes-list::-webkit-scrollbar-thumb,
+.admin-shell::-webkit-scrollbar-thumb,
+.admin-panel::-webkit-scrollbar-thumb,
+.table-wrap::-webkit-scrollbar-thumb {
+  background: #23272e;
+  border-radius: 8px;
+  border: 1px solid #181a1b;
+}
 .quick-actions-card__header {
   display: grid;
   justify-items: center;
@@ -16,7 +44,7 @@ body {
   background-color: var(--bg-color);
   color: var(--text-primary);
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  overflow: hidden;
+  /* overflow: hidden; */
 }
 
 .container {
@@ -286,7 +314,7 @@ h1 {
   width: 100%;
   margin-inline: auto;
   border-radius: 16px;
-  overflow: hidden;
+  /* overflow: hidden; */
   background:
     radial-gradient(circle at top, rgba(173, 255, 35, 0.16), transparent 55%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01));
@@ -880,7 +908,7 @@ h1 {
   box-sizing: border-box; /* Ensures accurate height calculation */
   display: block;
   resize: none; /* Prevent manual resize handle */
-  overflow: hidden; /* Hide scrollbar for auto-grow */
+  /* overflow: hidden; */ /* Hide scrollbar for auto-grow */
 }
 
 .block-input:focus {
@@ -988,6 +1016,7 @@ h1 {
   border: 1px solid var(--accent);
   background: linear-gradient(180deg, rgba(173, 255, 35, 0.22), rgba(173, 255, 35, 0.12));
   color: var(--text-primary);
+
   font-weight: 700;
 }
 
@@ -1190,7 +1219,7 @@ h1 {
 /* User Detail Panel */
 .user-detail-panel {
   max-width: 100%;
-  overflow: hidden;
+  /* overflow: hidden; */
 }
 
 .user-detail__header {
