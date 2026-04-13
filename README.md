@@ -98,6 +98,37 @@ PostgreSQL         Redis
 - `GET|POST /api/tasks/:id/attachments`
 - `GET|DELETE /api/tasks/:id/attachments/:attachment_id`
 
+## 📁 Gestor de Archivos (Drive)
+
+La aplicación incluye una vista tipo "Google Drive" donde cada usuario puede:
+
+- **Ver todos sus archivos subidos** (de cualquier tarea o independientes)
+- **Subir archivos** (sin asociar a una tarea, usando el botón "Subir archivo")
+- **Descargar archivos**
+- **Eliminar archivos**
+- **Previsualizar archivos** (imágenes, PDF, texto plano) directamente desde la web
+
+### Acceso
+
+- Desde el menú principal, selecciona la pestaña **Drive** o accede a `/drive`.
+
+### Funcionalidades
+
+- **Tabla de archivos:** Muestra nombre, extensión, fecha de subida y acciones.
+- **Subida rápida:** Permite subir archivos sueltos (no ligados a una tarea) desde la propia vista.
+- **Previsualización:** Haz clic en "👁 Previsualizar" para abrir una modal con el archivo (soporta imágenes, PDF y texto plano).
+- **Descarga:** Descarga directa con el botón "⬇ Descargar".
+- **Eliminación:** Elimina archivos con confirmación.
+
+### Endpoints relacionados
+
+- `GET /api/attachments` — Lista todos los archivos del usuario
+- `POST /api/tasks/null/attachments` — Sube archivo sin tarea asociada
+- `GET /api/tasks/:task_id/attachments/:attachment_id` — Descarga o previsualiza archivo
+- `DELETE /api/tasks/:task_id/attachments/:attachment_id` — Elimina archivo
+
+> **Nota:** También existe una vista para gestionar archivos por tarea específica (pestaña "Archivos por tarea"), con funciones similares pero agrupadas por tarea.
+
 ## Puesta En Marcha
 
 ### Inicio Rapido (1 comando)
