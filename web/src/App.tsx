@@ -423,6 +423,7 @@ function ServiceClusterScene({ services }: ServiceClusterSceneProps) {
     scene.add(fillLight);
 
     const root = new THREE.Group();
+    root.position.x = -1; // Desplaza la animación a la izquierda
     scene.add(root);
 
     const centerPoint = new THREE.Vector3(0, 0.2, 0);
@@ -433,7 +434,9 @@ function ServiceClusterScene({ services }: ServiceClusterSceneProps) {
       new THREE.Vector3(1.45, -0.85, 0),
     ];
 
+    // Restaurar el punto de conexión central animado
     const centerConnectionPoint = centerPoint.clone();
+
     const connectionPoints = trianglePositions.map((point) => point.clone());
     const connectionVertexVelocities = trianglePositions.map(() => new THREE.Vector3());
     const centerConnectionVelocity = new THREE.Vector3();
@@ -1030,23 +1033,22 @@ function Dashboard() {
         </section>
 
         <section className="card quick-actions-card">
-          <h2>Quick Actions</h2>
           <div className="actions">
             <button className="action-btn" onClick={() => navigate('/notes')}>
               <img src={folderIcon} alt="Notes icon" />
-              <span>My Notes</span>
+              <span>Notes</span>
             </button>
             <button className="action-btn" onClick={() => navigate('/calendar')}>
               <img src={calendarIcon} alt="Calendar icon" />
-              <span>My Calendar</span>
+              <span>Calendar</span>
             </button>
             <button className="action-btn" onClick={() => navigate('/tasks')}>
               <img src={taskIcon} alt="Tasks icon" />
-              <span>My Tasks</span>
+              <span>Tasks</span>
             </button>
             <button className="action-btn">
               <img src={starIcon} alt="Sync icon" />
-              <span>Sync Calendar</span>
+              <span>Sync</span>
             </button>
           </div>
         </section>
