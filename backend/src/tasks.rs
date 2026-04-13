@@ -1,3 +1,24 @@
+// Endpoint para listar todos los archivos adjuntos del usuario (sin mover archivos físicamente)
+
+pub async fn list_user_attachments(
+    State(state): State<AppState>,
+    claims: Claims,
+) -> Result<Json<Vec<TaskAttachment>>, (StatusCode, String)> {
+    let attachments = sqlx::query_as::<_, TaskAttachment>(
+        r#"
+        SELECT ta.id, ta.task_id, ta.filename, ta.mime_type, ta.uploaded_at
+        FROM task_attachments ta
+        JOIN tasks t ON t.id = ta.task_id
+        WHERE t.user_id = $1
+        ORDER BY ta.uploaded_at DESC
+        "#
+    )
+    .bind(claims.user_id)
+    .fetch_all(&state.db)
+    .await
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    Ok(Json(attachments))
+}
 // Handler para eliminar un adjunto de una tarea
 pub async fn delete_task_attachment(
     State(state): State<AppState>,

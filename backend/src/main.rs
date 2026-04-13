@@ -87,6 +87,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/tasks/:id", patch(tasks::update_task).delete(tasks::delete_task))
         // Task Attachments
         .route("/api/tasks/:id/attachments", post(tasks::upload_task_attachment).get(tasks::list_task_attachments))
+        .route("/api/attachments", get(tasks::list_user_attachments))
         .route("/api/tasks/:id/attachments/:attachment_id", get(tasks::download_task_attachment).delete(tasks::delete_task_attachment))
         // Lists
         .route("/api/lists", get(tasks::get_lists).post(tasks::create_list))

@@ -9,6 +9,8 @@ import Calendar from './pages/Calendar';
 import Tasks from './pages/Tasks';
 import AdminDashboard from './pages/AdminDashboard.tsx';
 import { API_URL } from './config';
+import DriveAllFiles from './pages/DriveAllFiles';
+import DriveByTask from './pages/DriveByTask';
 import { calendarIcon, folderIcon, starIcon, taskIcon } from './assets/icons';
 import beetleTorso from './assets/logo/beetle/torso.svg';
 import beetleShellLeft from './assets/logo/beetle/shell-left.svg?url';
@@ -579,6 +581,24 @@ function ServiceClusterScene({ services }: ServiceClusterSceneProps) {
         light,
         baseColor: config.baseColor,
       };
+          <>
+            <Route
+              path="/drive/files"
+              element={
+                <ProtectedRoute>
+                  <DriveAllFiles />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/drive/tasks"
+              element={
+                <ProtectedRoute>
+                  <DriveByTask />
+                </ProtectedRoute>
+              }
+            />
+          </>
     });
 
     const resize = () => {
@@ -1046,9 +1066,9 @@ function Dashboard() {
               <img src={taskIcon} alt="Tasks icon" />
               <span>Tasks</span>
             </button>
-            <button className="action-btn">
-              <img src={starIcon} alt="Sync icon" />
-              <span>Sync</span>
+            <button className="action-btn" onClick={() => navigate('/drive/files')}>
+              <img src={starIcon} alt="Drive icon" />
+              <span>Drive</span>
             </button>
           </div>
         </section>
@@ -1115,6 +1135,22 @@ export default function App() {
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/drive/files"
+          element={
+            <ProtectedRoute>
+              <DriveAllFiles />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/drive/tasks"
+          element={
+            <ProtectedRoute>
+              <DriveByTask />
             </ProtectedRoute>
           }
         />
