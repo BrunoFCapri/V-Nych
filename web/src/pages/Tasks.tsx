@@ -3,6 +3,11 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { API_URL } from '../config';
 import { folderIcon, homeIcon, starIcon, taskIcon } from '../assets/icons';
+import EisenhowerMatrix from '../components/EisenhowerMatrix';
+import TaskDependencyGraph from '../components/TaskDependencyGraph';
+import TaskFlowchart from '../components/TaskFlowchart';
+import type { EisenhowerTask } from '../components/EisenhowerMatrix';
+import type { DependencyTask } from '../components/TaskDependencyGraph';
 
 interface TaskAttachment {
     id: string;
@@ -551,11 +556,66 @@ export default function Tasks() {
     }
   };
 
-  return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: 'var(--bg-color)' }}>
+  // Estado para la vista seleccionada
+  const [taskView, setTaskView] = useState<'list' | 'eisenhower' | 'sequential'>('list');
+
+  // --- Adaptadores para vistas ---
+  // Eisenhower: requiere importante/urgente
+  const eisenhowerTasks: EisenhowerTask[] = useMemo(() =>
+    tasks
+      .filter(t => {
+        if (showStarredOnly) return t.is_starred;
+        if (selectedListId) return t.list_id === selectedListId;
+        return true;
+      })
+      .map(t => ({
+        id: t.id,
+        title: t.title,
+        importante: (t as any).importante ?? false,
+        urgente: (t as any).urgente ?? false,
+        status: t.status,
+      })),
+    [tasks, showStarredOnly, selectedListId]
+  );
+  // Secuencialidad: requiere parentIds
+  const dependencyTasks: DependencyTask[] = useMemo(() =>
+    tasks
+      .filter(t => {
+        if (showStarredOnly) return t.is_starred;
+        if (selectedListId) return t.list_id === selectedListId;
+        return true;
+      })
+      .map(t => ({
+        id: t.id,
+        title: t.title,
+        status: t.status,
+        parentIds: t.parent_id ? [t.parent_id] : [],
+      })),
+    [tasks, showStarredOnly, selectedListId]
+  );
+
+  // --- Handlers para vistas ---
+  // Eisenhower: mover tarea entre cuadrantes
+  const handleEisenhowerDrop = async (taskId: string, importante: boolean, urgente: boolean) => {
+    // Actualiza los campos en backend si existen
+    await updateTask(taskId, { importante, urgente } as any);
+  };
+  // Secuencialidad: agregar/quitar dependencia
+  const handleAddDependency = async (taskId: string, parentId: string) => {
+    // Aquí deberías actualizar el backend para agregar parentId a la tarea
+    // Por simplicidad, solo actualiza parent_id (una dependencia)
+    await updateTask(taskId, { parent_id: parentId } as any);
+  };
+        const handleRemoveDependency = async (taskId: string) => {
+            // Para múltiples dependencias, deberías manejar un array. Aquí solo borra si coincide
+            await updateTask(taskId, { parent_id: null } as any);
+        };
+
+    return (
+        <div style={{ display: 'flex', height: '100vh', minHeight: '100vh', backgroundColor: 'var(--bg-color)', margin: 0, padding: 0 }}>
       
       {/* Sidebar - Lists */}
-      <div style={{ width: '250px', backgroundColor: 'var(--card-bg)', color: 'white', padding: '20px', display: 'flex', flexDirection: 'column', borderRight: '1px solid var(--border)' }}>
+    <div style={{ width: '250px', backgroundColor: 'var(--card-bg)', color: 'white', padding: '20px', display: 'flex', flexDirection: 'column', borderRight: '1px solid var(--border)', height: '100%' }}>
         <h2 style={{ fontSize: '1.2rem', marginBottom: '20px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <img src={taskIcon} alt="Task lists" style={{ width: '20px', height: '20px', borderRadius: '4px' }} />
             Task Lists
@@ -649,15 +709,22 @@ export default function Tasks() {
       </div>
 
       {/* Main Content - Tasks */}
-      <div style={{ flex: 1, padding: '30px', overflowY: 'auto', borderRight: '1px solid var(--border)', backgroundColor: 'var(--bg-color)' }}>
-        <h1 style={{ marginBottom: '20px', color: 'var(--text-primary)' }}>
+    <div style={{ flex: 1, minHeight: 0, height: '100%', display: 'flex', flexDirection: 'column', padding: '30px', overflow: 'hidden', borderRight: '1px solid var(--border)', backgroundColor: 'var(--bg-color)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
+          <h1 style={{ marginBottom: 0, color: 'var(--text-primary)', flex: 1 }}>
             {showStarredOnly ? 'Starred Tasks' : (selectedListId ? lists.find(l => l.id === selectedListId)?.title : 'All Tasks')}
-        </h1>
-        
+          </h1>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => setTaskView('list')} style={{ padding: '8px 16px', borderRadius: 6, border: '1px solid var(--border)', background: taskView === 'list' ? 'var(--accent)' : 'var(--card-bg)', color: taskView === 'list' ? '#222' : 'var(--text-primary)', fontWeight: 600, cursor: 'pointer' }}>Lista</button>
+            <button onClick={() => setTaskView('eisenhower')} style={{ padding: '8px 16px', borderRadius: 6, border: '1px solid var(--border)', background: taskView === 'eisenhower' ? 'var(--accent)' : 'var(--card-bg)', color: taskView === 'eisenhower' ? '#222' : 'var(--text-primary)', fontWeight: 600, cursor: 'pointer' }}>Matriz Eisenhower</button>
+            <button onClick={() => setTaskView('sequential')} style={{ padding: '8px 16px', borderRadius: 6, border: '1px solid var(--border)', background: taskView === 'sequential' ? 'var(--accent)' : 'var(--card-bg)', color: taskView === 'sequential' ? '#222' : 'var(--text-primary)', fontWeight: 600, cursor: 'pointer' }}>Secuencialidad</button>
+          </div>
+        </div>
         {loading && <div style={{ color: 'var(--text-secondary)', marginBottom: '10px' }}>Loading tasks...</div>}
         {error && <div style={{ color: 'var(--error)', marginBottom: '10px' }}>Error: {error}</div>}
-        
-        <form onSubmit={(e) => { e.preventDefault(); if(newTaskTitle.trim()) { createNewTask(newTaskTitle.trim()); setNewTaskTitle(''); } }} style={{ marginBottom: '20px' }}>
+        {/* Formulario solo en vista lista */}
+        {taskView === 'list' && (
+          <form onSubmit={(e) => { e.preventDefault(); if(newTaskTitle.trim()) { createNewTask(newTaskTitle.trim()); setNewTaskTitle(''); } }} style={{ marginBottom: '20px' }}>
             <input 
                 value={newTaskTitle}
                 onChange={e => setNewTaskTitle(e.target.value)}
@@ -673,9 +740,11 @@ export default function Tasks() {
                     outline: 'none'
                 }}
             />
-        </form>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          </form>
+        )}
+        {/* Renderizado condicional de vistas */}
+                {taskView === 'list' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1, minHeight: 0, overflowY: 'auto' }}>
             {/* Active Tasks or Filtered View */}
             {visibleRootTasks.filter(t => t.status !== 'done').map(task => (
                 <TaskTreeItem 
@@ -716,12 +785,34 @@ export default function Tasks() {
             )}
 
             {visibleRootTasks.length === 0 && !loading && <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontStyle: 'italic' }}>No tasks found.</div>}
-        </div>
+          </div>
+        )}
+        {taskView === 'eisenhower' && (
+          <div className="eisenhower-matrix">
+            <EisenhowerMatrix
+              tasks={eisenhowerTasks}
+              onTaskDrop={handleEisenhowerDrop}
+              onUpdate={updateTask}
+            />
+          </div>
+        )}
+                {taskView === 'sequential' && (
+                    <div className="task-flowchart">
+                        <TaskFlowchart tasks={dependencyTasks} />
+                        <div style={{ marginTop: 32 }}>
+                            <TaskDependencyGraph
+                                tasks={dependencyTasks}
+                                onUpdate={updateTask}
+                                onAddDependency={handleAddDependency}
+                                onRemoveDependency={handleRemoveDependency}
+                            />
+                        </div>
+                    </div>
+                )}
       </div>
-
       {/* Right Panel - Details */}
-      {selectedTask && (
-        <div style={{ width: '350px', backgroundColor: 'var(--card-bg)', padding: '20px', borderLeft: '1px solid var(--border)', display: 'flex', flexDirection: 'column', color: 'var(--text-primary)' }}>
+            {selectedTask && (
+                <div style={{ width: '350px', backgroundColor: 'var(--card-bg)', padding: '20px', borderLeft: '1px solid var(--border)', display: 'flex', flexDirection: 'column', color: 'var(--text-primary)', height: '100%' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
                 <h3 style={{ margin: 0, color: 'var(--text-primary)' }}>Task Details</h3>
                 <button onClick={() => setSelectedTask(null)} style={{ border: 'none', background: 'none', fontSize: '1.2rem', cursor: 'pointer', color: 'var(--text-secondary)' }}>×</button>
