@@ -214,7 +214,7 @@ const BlockInput = ({ block, index, isFocused, isSelected, updateBlock, onKeyDow
     const isBullet = block.type === 'bullet-list';
 
     return (
-        <div style={{ display: 'flex', alignItems: 'flex-start', position: 'relative' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', position: 'relative', width: '100%' }}>
             {isBullet && (
                 <span style={{ 
                     marginRight: '8px', 
@@ -254,7 +254,8 @@ const BlockInput = ({ block, index, isFocused, isSelected, updateBlock, onKeyDow
                     resize: 'none', 
                     overflow: 'hidden',
                     backgroundColor: isSelected ? 'rgba(170, 59, 255, 0.1)' : 'transparent',
-                    flex: 1, // Take remaining space
+                    width: '100%',
+                    minHeight: '27px',
                     border: 'none',
                     outline: 'none',
                     background: 'transparent',
@@ -263,7 +264,8 @@ const BlockInput = ({ block, index, isFocused, isSelected, updateBlock, onKeyDow
                     fontSize: 'inherit',
                     padding: 0,
                     margin: 0,
-                    lineHeight: '1.5'
+                    lineHeight: '1.5',
+                    boxSizing: 'border-box'
                 }}
             />
         </div>
@@ -1098,8 +1100,8 @@ export default function Notes() {
   }, [notes]);
 
   return (
-    <div className="notes-layout">
-      <aside className="sidebar">
+    <div className="notes-layout" style={{height: '100vh', minHeight: '100vh', display: 'flex'}}>
+    <aside className="sidebar" style={{height: '100%', minHeight: 0}}>
         <div className="sidebar-header">
             <button className="back-btn" onClick={() => navigate('/')}>←</button>
             <h3>Notes</h3>
@@ -1117,61 +1119,61 @@ export default function Notes() {
           ))}
         </ul>
       </aside>
-      <main className="editor">
-        {selectedNote ? (
-          <>
-            <input 
-              ref={titleInputRef}
-              className="title-input"
-              value={title} 
-              onChange={e => setTitle(e.target.value)} 
-              onBlur={saveNote}
-              onKeyDown={(e) => {
-                  if (e.key === 'ArrowDown' || e.key === 'Enter') {
-                      e.preventDefault();
-                      if (blocks.length > 0) {
-                          handleFocus(0);
-                      }
-                  }
-              }}
-              placeholder="Untitled"
-            />
-            <div className="blocks-container">
-              {blocks.map((block, index) => (
-                <div key={block.id} className="block-wrapper">
-                  <BlockInput 
-                      block={block}
-                      index={index}
-                      updateBlock={updateBlock}
-                      onKeyDown={handleKeyDown}
-                      isFocused={focusedBlockIndex === index}
-                      isSelected={isBlockSelected(index)}
-                      onFocusNext={(next, isShift) => handleFocus(next + 1, isShift)}
-                      onFocusPrev={(prev, isShift) => handleFocus(prev - 1, isShift)}
-                      onManualFocus={(isShift) => {
-                          if (isShift) {
-                              handleFocus(index, true); 
-                          } else {
-                              setSelectionAnchor(index);
-                              setFocusedBlockIndex(index);
-                              setIsMouseSelecting(true);
-                          }
-                      }}
-                      onMouseEnter={() => handleMouseEnter(index)}
-                      onPaste={(e) => handlePaste(e, index)}
-                      onNavigateNote={(noteId) => {
-                          const targetNote = notes.find(n => n.id === noteId);
-                          if (targetNote) selectNote(targetNote);
-                      }}
-                      getNoteTitle={(id) => notes.find(n => n.id === id)?.title || ''}
-                  />
-                </div>
-              ))}
-            </div>
-          </>
-        ) : (
-          <div className="empty-state">Select a note or create a new one.</div>
-        )}
+    <main className="editor" style={{flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, height: '100vh'}}>
+                {selectedNote ? (
+                    <div style={{display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, height: '100%', position: 'relative'}}>
+                        <input 
+                            ref={titleInputRef}
+                            className="title-input"
+                            value={title} 
+                            onChange={e => setTitle(e.target.value)} 
+                            onBlur={saveNote}
+                            onKeyDown={(e) => {
+                                    if (e.key === 'ArrowDown' || e.key === 'Enter') {
+                                            e.preventDefault();
+                                            if (blocks.length > 0) {
+                                                    handleFocus(0);
+                                            }
+                                    }
+                            }}
+                            placeholder="Untitled"
+                        />
+                        <div className="blocks-container" style={{flex: 1, minHeight: 0, height: '100%'}}>
+                            {blocks.map((block, index) => (
+                                <div key={block.id} className="block-wrapper">
+                                    <BlockInput 
+                                            block={block}
+                                            index={index}
+                                            updateBlock={updateBlock}
+                                            onKeyDown={handleKeyDown}
+                                            isFocused={focusedBlockIndex === index}
+                                            isSelected={isBlockSelected(index)}
+                                            onFocusNext={(next, isShift) => handleFocus(next + 1, isShift)}
+                                            onFocusPrev={(prev, isShift) => handleFocus(prev - 1, isShift)}
+                                            onManualFocus={(isShift) => {
+                                                    if (isShift) {
+                                                            handleFocus(index, true); 
+                                                    } else {
+                                                            setSelectionAnchor(index);
+                                                            setFocusedBlockIndex(index);
+                                                            setIsMouseSelecting(true);
+                                                    }
+                                            }}
+                                            onMouseEnter={() => handleMouseEnter(index)}
+                                            onPaste={(e) => handlePaste(e, index)}
+                                            onNavigateNote={(noteId) => {
+                                                    const targetNote = notes.find(n => n.id === noteId);
+                                                    if (targetNote) selectNote(targetNote);
+                                            }}
+                                            getNoteTitle={(id) => notes.find(n => n.id === id)?.title || ''}
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                ) : (
+                    <div className="empty-state">Select a note or create a new one.</div>
+                )}
       </main>
     </div>
   );
