@@ -113,11 +113,11 @@ const BlockInput = ({ block, index, isFocused, isSelected, updateBlock, onKeyDow
                 onKeyDown={handleImageKeyDown}
                 className={`block-input type-image ${isSelected ? 'selected' : ''}`}
                 style={{ 
-                    border: isSelected ? '2px solid #38bdf8' : 'none',
+                    border: isSelected ? '2px solid var(--accent)' : 'none',
                     padding: '10px',
                     borderRadius: '4px',
                     outline: 'none',
-                    backgroundColor: isSelected ? 'rgba(56, 189, 248, 0.1)' : 'transparent'
+                    backgroundColor: isSelected ? 'var(--accent-weak)' : 'transparent'
                 }}
                 onClick={(e) => {
                     e.stopPropagation();
@@ -132,7 +132,7 @@ const BlockInput = ({ block, index, isFocused, isSelected, updateBlock, onKeyDow
                         accept="image/*"
                         onChange={handleImageUpload}
                         className="file-input"
-                        style={{ color: '#94a3b8' }}
+                        style={{ color: 'var(--text-secondary)' }}
                     />
                 )}
             </div>
@@ -183,12 +183,12 @@ const BlockInput = ({ block, index, isFocused, isSelected, updateBlock, onKeyDow
                 onKeyDown={handleNoteKey}
                 className={`block-input type-note ${isSelected ? 'selected' : ''}`}
                 style={{ 
-                    border: isSelected ? '2px solid #38bdf8' : '1px solid #334155',
+                    border: isSelected ? '2px solid var(--accent)' : '1px solid var(--border)',
                     padding: '10px',
                     borderRadius: '4px',
                     outline: 'none',
-                    backgroundColor: isSelected ? 'rgba(56, 189, 248, 0.1)' : '#1e293b',
-                    color: '#e2e8f0', // Always light text for dark note block
+                    backgroundColor: isSelected ? 'var(--accent-weak)' : 'var(--card-bg)',
+                    color: 'var(--text-primary)', // Always light text for dark note block
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -206,7 +206,7 @@ const BlockInput = ({ block, index, isFocused, isSelected, updateBlock, onKeyDow
                 }}
             >
                 <span style={{ fontSize: '1.2em' }}>📄</span>
-                <span style={{ fontWeight: 500, textDecoration: 'underline', color: '#60a5fa' }}>{displayTitle}</span>
+                <span style={{ fontWeight: 500, textDecoration: 'underline', color: 'var(--accent)' }}>{displayTitle}</span>
             </div>
         );
     }
@@ -221,7 +221,7 @@ const BlockInput = ({ block, index, isFocused, isSelected, updateBlock, onKeyDow
                     marginLeft: '8px', 
                     marginTop: '2px', // Align with text
                     fontSize: '1em', 
-                    color: '#94a3b8',
+                    color: 'var(--text-secondary)',
                     userSelect: 'none'
                 }}>•</span>
             )}
@@ -300,7 +300,7 @@ const SidebarItem = ({ note, selectedId, onSelect, onDelete }: { note: any, sele
                     display: 'flex', 
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    backgroundColor: selectedId === note.id ? '#1e3a8a' : 'transparent',
+                    backgroundColor: selectedId === note.id ? 'var(--accent-weak)' : 'transparent',
                     borderRadius: '4px',
                     position: 'relative',
                 }}
@@ -315,7 +315,7 @@ const SidebarItem = ({ note, selectedId, onSelect, onDelete }: { note: any, sele
                     {hasChildren ? (
                         <span 
                                 onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
-                                style={{ marginRight: '5px', fontSize: '0.8em', color: '#64748b', cursor: 'pointer', flexShrink: 0 }}
+                                style={{ marginRight: '5px', fontSize: '0.8em', color: 'var(--text-muted)', cursor: 'pointer', flexShrink: 0 }}
                         >
                             {expanded ? '▼' : '▶'}
                         </span>
@@ -333,7 +333,7 @@ const SidebarItem = ({ note, selectedId, onSelect, onDelete }: { note: any, sele
                         style={{
                             border: 'none',
                             background: 'none',
-                            color: '#94a3b8',
+                            color: 'var(--text-secondary)',
                             cursor: 'pointer',
                             fontSize: '1em',
                             padding: '0 5px',

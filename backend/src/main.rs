@@ -1,10 +1,11 @@
 mod tasks;
+mod admin;
 mod users;
 mod notes;
 mod calendar;
 
 use axum::{
-    extract::{State},
+    extract::State,
     routing::{get, post, patch},
     Json, Router,
 };
@@ -35,7 +36,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Database connection string
     let database_url = std::env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "postgres://postgres:password@localhost:5432/chaja_mesh".to_string());
+        .unwrap_or_else(|_| "postgres://postgres:password@localhost:5432/v_nych".to_string());
 
     // Redis connection string
     let redis_url = std::env::var("REDIS_URL")
@@ -96,6 +97,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/calendar/events/:id", get(calendar::get_event).patch(calendar::update_event).delete(calendar::delete_event))
         .route("/api/auth/register", post(users::register))
         .route("/api/auth/login", post(users::login))
+        .route("/api/admin/overview", get(admin::overview))
+        .route("/api/admin/user/:user_id", get(admin::user_detail))
         .layer(cors)
         .with_state(state);
 
